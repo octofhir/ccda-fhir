@@ -1,0 +1,86 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-patient-to-fhir'
+/// name = 'CdaPatientToFhir'
+/// title = 'C-CDA recordTarget to US Core Patient'
+/// status = 'active'
+/// description = 'The patient role of a C-CDA document to a US Core 6.1.0 Patient, after the Patient mapping of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-patient-to-fhir" = "CdaPatientToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PatientRole" alias PatientRole as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Patient" alias CdaPatient as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/LanguageCommunication" alias LanguageCommunication as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Guardian" alias Guardian as source
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as target
+uses "http://hl7.org/fhir/StructureDefinition/Extension" alias Extension as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group PatientRoleToPatient(source role : PatientRole, target patient : Patient, target bundle : Bundle) {
+  role -> patient.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient';
+  role.id as id -> patient.identifier as i then IIToIdentifier(id, i);
+  role.patient as p then CdaPatientToPatient(p, patient);
+  role.addr as addr -> patient.address as a then ADToAddress(addr, a);
+  role.telecom as telecom -> patient.telecom as t then TELToContactPoint(telecom, t);
+  role.providerOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), patient.managingOrganization as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+}
+
+group CdaPatientToPatient(source p : CdaPatient, target patient : Patient) {
+  p.name as name -> patient.name as n then PNToHumanName(name, n);
+  p.administrativeGenderCode as gender then {
+    gender.code as code -> patient.gender = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-AdministrativeGender', 'code');
+    gender.nullFlavor as nf -> patient.gender = 'unknown';
+  };
+  p.birthTime as birth -> patient.birthDate = create('date') as date then TSToDate(birth, date);
+  p.sdtcDeceasedTime as time -> patient.deceased = create('dateTime') as date then TSToDateTime(time, date);
+  p.sdtcDeceasedInd as deceased where (%p.sdtcDeceasedTime.empty()) then {
+    deceased.value as v -> patient.deceased = v;
+  };
+  p.maritalStatusCode as status -> patient.maritalStatus as c then CDToCodeableConcept(status, c);
+  p.religiousAffiliationCode as religion -> patient.extension as ext, ext.url = 'http://hl7.org/fhir/StructureDefinition/patient-religion', ext.value = create('CodeableConcept') as c then CDToCodeableConcept(religion, c);
+  // Race and ethnicity: one US Core extension each, OMB categories and detailed codes in it.
+  p where (raceCode.exists() or sdtcRaceCode.exists()) -> patient.extension as ext, ext.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race' then {
+    p.raceCode as race then OmbCoding(race, ext);
+    p.sdtcRaceCode as race then OmbCoding(race, ext);
+    p -> ext.extension as text, text.url = 'text', text.value = evaluate(p, (raceCode | sdtcRaceCode).select(iif(originalText.xmlText.exists(), originalText.xmlText.trim(), iif(displayName.exists(), displayName, iif(code.exists(), code, nullFlavor)))).join(', '));
+  };
+  p where (ethnicGroupCode.exists() or sdtcEthnicGroupCode.exists()) -> patient.extension as ext, ext.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity' then {
+    p.ethnicGroupCode as ethnicity then OmbCoding(ethnicity, ext);
+    p.sdtcEthnicGroupCode as ethnicity then OmbCoding(ethnicity, ext);
+    p -> ext.extension as text, text.url = 'text', text.value = evaluate(p, (ethnicGroupCode | sdtcEthnicGroupCode).select(iif(originalText.xmlText.exists(), originalText.xmlText.trim(), iif(displayName.exists(), displayName, iif(code.exists(), code, nullFlavor)))).join(', '));
+  };
+  p.languageCommunication as language -> patient.communication as communication then LanguageCommunication(language, communication);
+  p.guardian as guardian -> patient.contact as contact then Guardian(guardian, contact);
+}
+
+// A race or ethnicity code: an OMB category, a detailed code, or a null flavor as a category.
+group OmbCoding(source code : CE, target ext : Extension) {
+  code.code as c where (c in ('1002-5' | '2028-9' | '2054-5' | '2076-8' | '2106-3' | '2135-2' | '2186-5')) -> ext.extension as category, category.url = 'ombCategory', category.value = create('Coding') as coding then CDToCoding(code, coding);
+  code.code as c where ((c in ('1002-5' | '2028-9' | '2054-5' | '2076-8' | '2106-3' | '2135-2' | '2186-5')).not()) -> ext.extension as detailed, detailed.url = 'detailed', detailed.value = create('Coding') as coding then CDToCoding(code, coding);
+  code.nullFlavor as nf where (nf in ('UNK' | 'ASKU')) -> ext.extension as category, category.url = 'ombCategory', category.value = create('Coding') as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor', coding.code = nf;
+}
+
+group LanguageCommunication(source language : LanguageCommunication, target communication) {
+  language.languageCode as code then {
+    code.code as c -> communication.language as cc, cc.coding as coding, coding.system = 'urn:ietf:bcp:47', coding.code = c;
+  };
+  language.preferenceInd as preferred then {
+    preferred.value as v -> communication.preferred = v;
+  };
+  language where (modeCode.exists() or proficiencyLevelCode.exists()) -> communication.extension as proficiency, proficiency.url = 'http://hl7.org/fhir/StructureDefinition/patient-proficiency' then {
+    language.modeCode as mode -> proficiency.extension as type, type.url = 'type', type.value = create('Coding') as coding then CDToCoding(mode, coding);
+    language.proficiencyLevelCode as level -> proficiency.extension as l, l.url = 'level', l.value = create('Coding') as coding then CDToCoding(level, coding);
+  };
+}
+
+group Guardian(source guardian : Guardian, target contact) {
+  guardian -> contact.relationship as relationship, relationship.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode', coding.code = 'GUARD', coding.display = 'guardian';
+  guardian.code as code -> contact.relationship as relationship then CDToCodeableConcept(code, relationship);
+  guardian.guardianPerson as person then {
+    person.name first as name -> contact.name as n then PNToHumanName(name, n);
+  };
+  guardian.addr first as addr -> contact.address as a then ADToAddress(addr, a);
+  guardian.telecom as telecom -> contact.telecom as t then TELToContactPoint(telecom, t);
+}

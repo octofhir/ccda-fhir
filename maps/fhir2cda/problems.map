@@ -1,0 +1,73 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-problems-to-cda'
+/// name = 'FhirProblemsToCda'
+/// title = 'US Core Condition to C-CDA problems'
+/// status = 'active'
+/// description = 'US Core 6.1.0 Condition to a Problem Concern act with a Problem observation, after "Problems FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-problems-to-cda" = "FhirProblemsToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Act" alias Act as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group ConditionToConcernAct(source condition : Condition, source bundle : Bundle, target act : Act) {
+  condition -> act.classCode = 'ACT', act.moodCode = 'EVN';
+  condition -> act.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.3', template.extension = '2024-05-01';
+  condition -> uuid() as u, act.id as id, id.root = evaluate(u, $this.upper());
+  condition -> act.code as code, code.code = 'CONC', code.codeSystem = '2.16.840.1.113883.5.6';
+  condition -> act.statusCode as sc, sc.code = evaluate(condition, iif(clinicalStatus.coding.code.where($this in ('active' | 'recurrence' | 'relapse')).exists() or clinicalStatus.empty(), 'active', 'completed'));
+  condition -> act.effectiveTime as time then {
+    condition.recordedDate as date -> time.low as low then DateTimeToTS(date, low);
+    condition where (recordedDate.empty()) then {
+      condition.onset : dateTime as onset -> time.low as low then DateTimeToTS(onset, low);
+      condition where (iif(onset.hasValue(), false, true)) -> time.low as low, low.nullFlavor = 'UNK';
+    };
+    condition where (clinicalStatus.coding.code.where($this in ('active' | 'recurrence' | 'relapse')).empty() and clinicalStatus.exists()) then {
+      condition.abatement : dateTime as end -> time.high as high then DateTimeToTS(end, high);
+      condition where (iif(abatement.hasValue(), false, true)) -> time.high as high, high.nullFlavor = 'UNK';
+    };
+  };
+  condition -> act.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.observation as observation then ConditionToObservation(condition, bundle, observation);
+}
+
+group ConditionToObservation(source condition : Condition, source bundle : Bundle, target observation : Observation) {
+  condition -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+  condition -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.4', template.extension = '2024-05-01';
+  condition.identifier as identifier -> observation.id as id then IdentifierToII(identifier, id);
+  condition where (identifier.empty()) -> uuid() as u, observation.id as id, id.root = evaluate(u, $this.upper());
+  // The problem type: a category from outside the US Core category system (SNOMED CT or
+  // LOINC), else "Problem".
+  condition.category first as category where (coding.where(system != 'http://terminology.hl7.org/CodeSystem/condition-category').exists()) -> observation.code = create('CD') as code then CodeableConceptToCD(category, code);
+  condition where (category.coding.where(system != 'http://terminology.hl7.org/CodeSystem/condition-category').empty()) -> observation.code = create('CD') as code, code.code = '55607006', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Problem', code.translation as loinc, loinc.code = '75326-9', loinc.codeSystem = '2.16.840.1.113883.6.1', loinc.displayName = 'Problem';
+  condition -> observation.statusCode as status, status.code = 'completed';
+  condition where (verificationStatus.coding.where(code = 'refuted').exists()) -> observation.negationInd = true;
+  condition -> observation.effectiveTime as time then {
+    condition.onset : dateTime as onset -> time.low as low then DateTimeToTS(onset, low);
+    condition.onset : Period as onset then {
+      onset.start as start -> time.low as low then DateTimeToTS(start, low);
+    };
+    condition where (iif(onset.hasValue() or onset.start.hasValue(), false, true)) -> time.low as low, low.nullFlavor = 'UNK';
+    condition.abatement : dateTime as end -> time.high as high then DateTimeToTS(end, high);
+  };
+  condition.code as code -> observation.value = create('CD') as value then CodeableConceptToCD(code, value);
+  condition where (code.empty()) -> observation.value = create('CD') as value, value.nullFlavor = 'UNK';
+  condition.recorder as ref -> evaluate(condition, iif(recordedDate.hasValue(), recordedDate, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, observation);
+  condition.clinicalStatus as status then {
+    status.coding first as coding then {
+      coding.code as c -> observation.entryRelationship as relationship, relationship.typeCode = 'REFR', relationship.observation as statusObservation then {
+        c -> statusObservation.classCode = 'OBS', statusObservation.moodCode = 'EVN';
+        c -> statusObservation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.6', template.extension = '2019-06-20';
+        c -> statusObservation.code as code, code.code = '33999-4', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Status';
+        c -> statusObservation.statusCode as sc, sc.code = 'completed';
+        c -> statusObservation.value = create('CD') as value, value.code = translate(c, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-ProblemStatus', 'code'), value.codeSystem = '2.16.840.1.113883.6.96';
+      };
+    };
+  };
+  condition.note as note then AnnotationToComment(note, observation);
+}

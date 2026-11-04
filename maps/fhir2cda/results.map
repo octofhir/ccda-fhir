@@ -1,0 +1,113 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda'
+/// name = 'FhirResultsToCda'
+/// title = 'US Core DiagnosticReport and Observation to C-CDA results and vital signs'
+/// status = 'active'
+/// description = 'US Core 6.1.0 DiagnosticReport (Lab) with its result Observations to a Result Organizer, and vital signs panels to a Vital Signs Organizer. C-CDA on FHIR 2.0.0 has no FHIR → CDA table for results; this is the reverse of its CDA → FHIR table. Vital signs follow "Vital Signs FHIR → CDA".'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda" = "FhirResultsToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias DiagnosticReport as source
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PQ" alias PQ as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-PQ" alias IVL_PQ as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-TS" alias IVL_TS as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ST" alias ST as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/INT" alias INT as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/BL" alias BL as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/TS" alias TS as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group ReportToOrganizer(source report : DiagnosticReport, source bundle : Bundle, target organizer : Organizer) {
+  report -> organizer.classCode = 'CLUSTER', organizer.moodCode = 'EVN';
+  report -> organizer.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.1', template.extension = '2023-05-01';
+  report.identifier as identifier -> organizer.id as id then IdentifierToII(identifier, id);
+  report where (identifier.empty()) -> uuid() as u, organizer.id as id, id.root = evaluate(u, $this.upper());
+  report.code as code -> organizer.code = create('CD') as c then CodeableConceptToCD(code, c);
+  report.status as status -> organizer.statusCode as sc, sc.code = evaluate(status, iif($this in ('registered' | 'partial' | 'preliminary'), 'active', iif($this = 'cancelled', 'cancelled', iif($this = 'entered-in-error', 'aborted', 'completed'))));
+  report.effective : dateTime as effective -> organizer.effectiveTime as time then {
+    effective -> time.low as low then DateTimeToTS(effective, low);
+    effective -> time.high as high then DateTimeToTS(effective, high);
+  };
+  report.effective : Period as effective -> organizer.effectiveTime as time then PeriodToIVLTS(effective, time);
+  report.result as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Observation as observation -> organizer.component as component, component.observation as result then {
+        observation -> result.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.2', template.extension = '2023-05-01';
+        observation.status as status -> result.statusCode as sc, sc.code = evaluate(status, iif($this in ('registered' | 'preliminary'), 'active', iif($this = 'cancelled', 'cancelled', iif($this = 'entered-in-error', 'aborted', 'completed'))));
+        observation then ObservationToCda(observation, bundle, result);
+      };
+    };
+  };
+}
+
+group PanelToOrganizer(source panel : Observation, source bundle : Bundle, target organizer : Organizer) {
+  panel -> organizer.classCode = 'CLUSTER', organizer.moodCode = 'EVN';
+  panel -> organizer.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.26', template.extension = '2015-08-01';
+  panel.identifier as identifier -> organizer.id as id then IdentifierToII(identifier, id);
+  panel where (identifier.empty()) -> uuid() as u, organizer.id as id, id.root = evaluate(u, $this.upper());
+  panel -> organizer.code as code, code.code = '74728-7', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Vital signs, weight, height, head circumference, oximetry, BMI, and BSA panel - HL7.CCDAr1.1';
+  panel -> organizer.statusCode as sc, sc.code = 'completed';
+  panel.effective : dateTime as effective -> organizer.effectiveTime as time then DateTimeToTS(effective, time);
+  panel.effective : Period as effective -> organizer.effectiveTime as time then PeriodToIVLTS(effective, time);
+  panel.hasMember as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Observation as observation -> organizer.component as component, component.observation as vital then VitalToCda(observation, bundle, vital);
+    };
+  };
+  // A vital sign on its own (no members): the organizer holds it.
+  panel where (hasMember.empty() and value.exists()) -> organizer.component as component, component.observation as vital then VitalToCda(panel, bundle, vital);
+}
+
+group VitalToCda(source observation : Observation, source bundle : Bundle, target vital : CdaObservation) {
+  observation -> vital.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.27', template.extension = '2014-06-09';
+  observation -> vital.statusCode as sc, sc.code = 'completed';
+  observation then ObservationToCda(observation, bundle, vital);
+}
+
+group ObservationToCda(source observation : Observation, source bundle : Bundle, target result : CdaObservation) {
+  observation -> result.classCode = 'OBS', result.moodCode = 'EVN';
+  observation.identifier as identifier -> result.id as id then IdentifierToII(identifier, id);
+  observation where (identifier.empty()) -> uuid() as u, result.id as id, id.root = evaluate(u, $this.upper());
+  observation.code as code -> result.code = create('CD') as c then CodeableConceptToCD(code, c);
+  observation.effective : dateTime as effective -> result.effectiveTime as time then DateTimeToTS(effective, time);
+  observation.effective : Period as effective -> result.effectiveTime as time then PeriodToIVLTS(effective, time);
+  observation.value : Quantity as value where (system = 'http://unitsofmeasure.org' or (system.empty() and code.empty() and unit.empty())) -> result.value = create('PQ') as q then {
+    value.value as v -> q.value = v;
+    value.code as code -> q.unit = code;
+  };
+  observation.value : Quantity as value where (system.exists() and system != 'http://unitsofmeasure.org') -> result.value = create('PQ') as q then QuantityToPQ(value, q);
+  observation.value : Range as value -> result.value = create('IVL_PQ') as range then {
+    value.low as low -> range.low as l then { low.value as v -> l.value = v; low.code as code -> l.unit = code; };
+    value.high as high -> range.high as h then { high.value as v -> h.value = v; high.code as code -> h.unit = code; };
+  };
+  observation.value : CodeableConcept as value -> result.value = create('CD') as c then CodeableConceptToCD(value, c);
+  observation.value : string as value -> result.value = create('ST') as s, s.xmlText = value;
+  observation.value : integer as value -> result.value = create('INT') as i, i.value = value;
+  observation.value : boolean as value -> result.value = create('BL') as b, b.value = value;
+  observation.value : dateTime as value -> result.value = create('TS') as t then DateTimeToTS(value, t);
+  observation.dataAbsentReason as reason then {
+    reason.coding first as coding then {
+      coding.code as code -> result.value = create('PQ') as q, q.nullFlavor = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-DataAbsentReasonNullFlavor', 'code');
+    };
+  };
+  observation.interpretation as interpretation -> result.interpretationCode = create('CE') as c then CodeableConceptToCD(interpretation, c);
+  observation.method as method -> result.methodCode = create('CE') as c then CodeableConceptToCD(method, c);
+  observation.bodySite as site -> result.targetSiteCode = create('CD') as c then CodeableConceptToCD(site, c);
+  observation.referenceRange as range -> result.referenceRange as cdaRange, cdaRange.observationRange as observationRange then {
+    range where (low.exists() or high.exists()) -> observationRange.value = create('IVL_PQ') as value then {
+      range.low as low -> value.low as l then { low.value as v -> l.value = v; low.code as code -> l.unit = code; };
+      range.high as high -> value.high as h then { high.value as v -> h.value = v; high.code as code -> h.unit = code; };
+    };
+    range.text as text where (%range.low.empty() and %range.high.empty()) -> observationRange.value = create('ST') as value, value.xmlText = text;
+    range -> observationRange.interpretationCode as code, code.code = 'N', code.codeSystem = '2.16.840.1.113883.5.83';
+  };
+  observation.performer as ref -> evaluate(observation, 'UNK') as time then ReferenceToAuthor(ref, bundle, time, result);
+  observation.note as note then AnnotationToComment(note, result);
+}

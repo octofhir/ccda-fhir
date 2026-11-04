@@ -1,0 +1,142 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda'
+/// name = 'FhirParticipantsToCda'
+/// title = 'FHIR R4 participants to CDA'
+/// status = 'active'
+/// description = 'Practitioner, Organization and Device to CDA assigned authors, entities and organizations.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda" = "FhirParticipantsToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Practitioner" alias Practitioner as source
+uses "http://hl7.org/fhir/StructureDefinition/PractitionerRole" alias PractitionerRole as source
+uses "http://hl7.org/fhir/StructureDefinition/Organization" alias Organization as source
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/AssignedAuthor" alias AssignedAuthor as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/AssignedEntity" alias AssignedEntity as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organization" alias CdaOrganization as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CustodianOrganization" alias CustodianOrganization as target
+uses "http://hl7.org/fhir/StructureDefinition/Reference" alias Reference as source
+uses "http://hl7.org/fhir/StructureDefinition/Annotation" alias Annotation as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Author" alias Author as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Act" alias Act as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+
+group PractitionerToAssignedAuthor(source src : Practitioner, target tgt : AssignedAuthor) {
+  src.identifier as identifier -> tgt.id as id then IdentifierToII(identifier, id);
+  src where (identifier.empty()) -> tgt.id as id, id.nullFlavor = 'NI';
+  src.address as address -> tgt.addr as addr then AddressToAD(address, addr);
+  src.telecom as telecom -> tgt.telecom as tel then ContactPointToTEL(telecom, tel);
+  src where (address.empty()) -> tgt.addr as addr, addr.nullFlavor = 'NI';
+  src where (telecom.empty()) -> tgt.telecom as tel, tel.nullFlavor = 'NI';
+  src -> tgt.assignedPerson as person then {
+    src.name as name -> person.name as pn then HumanNameToPN(name, pn);
+  };
+}
+
+group PractitionerToAssignedEntity(source src : Practitioner, target tgt : AssignedEntity) {
+  src.identifier as identifier -> tgt.id as id then IdentifierToII(identifier, id);
+  src where (identifier.empty()) -> tgt.id as id, id.nullFlavor = 'NI';
+  src.address as address -> tgt.addr as addr then AddressToAD(address, addr);
+  src.telecom as telecom -> tgt.telecom as tel then ContactPointToTEL(telecom, tel);
+  src where (address.empty()) -> tgt.addr as addr, addr.nullFlavor = 'NI';
+  src where (telecom.empty()) -> tgt.telecom as tel, tel.nullFlavor = 'NI';
+  src -> tgt.assignedPerson as person then {
+    src.name as name -> person.name as pn then HumanNameToPN(name, pn);
+  };
+}
+
+group DeviceToAssignedAuthor(source src : Device, source bundle : Bundle, target tgt : AssignedAuthor) {
+  src.identifier as identifier -> tgt.id as id then IdentifierToII(identifier, id);
+  src where (identifier.empty()) -> tgt.id as id, id.nullFlavor = 'NI';
+  src -> tgt.assignedAuthoringDevice as device then {
+    src.deviceName first as name then {
+      name.name as n -> device.manufacturerModelName as model, model.xmlText = n;
+    };
+    src.version first as version then {
+      version.value as v -> device.softwareName as software, software.xmlText = v;
+    };
+  };
+  src -> tgt.addr as addr, addr.nullFlavor = 'NI';
+  src -> tgt.telecom as tel, tel.nullFlavor = 'NI';
+  src.owner as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Organization as organization -> tgt.representedOrganization as org then OrganizationToOrganization(organization, org);
+    };
+  };
+}
+
+group OrganizationToOrganization(source src : Organization, target tgt : CdaOrganization) {
+  src.identifier as identifier -> tgt.id as id then IdentifierToII(identifier, id);
+  src.name as name -> tgt.name as on, on.item as item, item.xmlText = name;
+  src.telecom as telecom -> tgt.telecom as tel then ContactPointToTEL(telecom, tel);
+  src.address as address -> tgt.addr as addr then AddressToAD(address, addr);
+  src where (telecom.empty()) -> tgt.telecom as tel, tel.nullFlavor = 'NI';
+  src where (address.empty()) -> tgt.addr as addr, addr.nullFlavor = 'NI';
+}
+
+group OrganizationToCustodian(source src : Organization, target tgt : CustodianOrganization) {
+  src.identifier as identifier -> tgt.id as id then IdentifierToII(identifier, id);
+  src where (identifier.empty()) -> tgt.id as id, id.nullFlavor = 'NI';
+  src.name as name -> tgt.name as on, on.item as item, item.xmlText = name;
+  src.telecom first as telecom -> tgt.telecom as tel then ContactPointToTEL(telecom, tel);
+  src where (telecom.empty()) -> tgt.telecom as tel, tel.nullFlavor = 'NI';
+  src.address first as address -> tgt.addr as addr then AddressToAD(address, addr);
+  src where (address.empty()) -> tgt.addr as addr, addr.nullFlavor = 'NI';
+}
+
+// The Practitioner a reference names, as the author (C-CDA Author Participation) of `owner`,
+// at `time` (a FHIR dateTime, or 'UNK' when not known).
+group ReferenceToAuthor(source ref : Reference, source bundle : Bundle, source time, target owner) {
+  bundle.entry as entry where (fullUrl = %ref.reference) then {
+    entry.resource : Practitioner as practitioner -> owner.author as author, author.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.119' then {
+      time as t where (t.toString() != 'UNK') -> author.time as at, at.value = t;
+      time as t where (t.toString() = 'UNK') -> author.time as at, at.nullFlavor = 'UNK';
+      practitioner -> author.assignedAuthor as assigned then PractitionerToAssignedAuthor(practitioner, assigned);
+    };
+    entry.resource : PractitionerRole as role -> owner.author as author, author.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.119' then {
+      time as t where (t.toString() != 'UNK') -> author.time as at, at.value = t;
+      time as t where (t.toString() = 'UNK') -> author.time as at, at.nullFlavor = 'UNK';
+      role -> author.assignedAuthor as assigned then RoleToAssignedAuthor(role, bundle, assigned);
+    };
+  };
+}
+
+// A PractitionerRole as an assigned author: the Practitioner, the role's code, the Organization.
+group RoleToAssignedAuthor(source role : PractitionerRole, source bundle : Bundle, target assigned : AssignedAuthor) {
+  role.practitioner as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Practitioner as practitioner then PractitionerToAssignedAuthor(practitioner, assigned);
+    };
+  };
+  role where (practitioner.empty()) -> assigned.id as id, id.nullFlavor = 'NI';
+  role.code first as code -> assigned.code = create('CE') as c then CodeableConceptToCD(code, c);
+  role where (practitioner.empty()) then {
+    role -> assigned.addr as addr, addr.nullFlavor = 'NI';
+    role -> assigned.telecom as tel, tel.nullFlavor = 'NI';
+  };
+  role.organization as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Organization as organization -> assigned.representedOrganization as org then OrganizationToOrganization(organization, org);
+    };
+  };
+}
+
+// The Practitioner or Organization a reference names, as a performer of `owner`.
+group ReferenceToPerformer(source ref : Reference, source bundle : Bundle, target owner) {
+  bundle.entry as entry where (fullUrl = %ref.reference) then {
+    entry.resource : Practitioner as practitioner -> owner.performer as performer, performer.typeCode = 'PRF', performer.assignedEntity as entity then PractitionerToAssignedEntity(practitioner, entity);
+    entry.resource : Organization as organization -> owner.performer as performer, performer.typeCode = 'PRF', performer.assignedEntity as entity, entity.id as id, id.nullFlavor = 'NA', entity.addr as addr, addr.nullFlavor = 'NI', entity.telecom as tel, tel.nullFlavor = 'NI', entity.representedOrganization as org then OrganizationToOrganization(organization, org);
+  };
+}
+
+// Annotation → C-CDA Comment Activity, in an entryRelationship of `owner`.
+group AnnotationToComment(source note : Annotation, target owner) {
+  note.text as text -> owner.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.act as comment then {
+    text -> comment.classCode = 'ACT', comment.moodCode = 'EVN';
+    text -> comment.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.64';
+    text -> comment.code as code, code.code = '48767-8', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Annotation comment';
+    text -> comment.text as t, t.xmlText = text, t.reference as ref, ref.nullFlavor = 'NI';
+  };
+}

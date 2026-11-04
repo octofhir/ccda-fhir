@@ -1,0 +1,49 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-procedures-to-fhir'
+/// name = 'CdaProceduresToFhir'
+/// title = 'C-CDA procedures to US Core Procedure'
+/// status = 'active'
+/// description = 'Procedure Activity Procedure to US Core 6.1.0 Procedure, after "Procedures CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-procedures-to-fhir" = "CdaProceduresToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureActivityProcedure" alias ProcedureActivityProcedure as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/Procedure" alias Procedure as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group ProceduresSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.procedure : ProcedureActivityProcedure as procedure -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle);
+  };
+}
+
+group Procedure(source procedure : ProcedureActivityProcedure, target resource : Procedure, target bundle : Bundle) {
+  procedure -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure';
+  procedure.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  procedure where (negationInd = true) -> resource.status = 'not-done';
+  procedure where (negationInd.exists().not() or negationInd = false) then {
+    procedure.statusCode as status then {
+      status.code as code -> resource.status = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-ProcedureStatus', 'code');
+    };
+    procedure where (statusCode.code.empty()) -> resource.status = 'unknown';
+  };
+  procedure.code as code -> resource.code as cc then CDToCodeableConcept(code, cc);
+  procedure.effectiveTime as time then {
+    time.value as v -> resource.performed = create('dateTime') as performed then TSToDateTime(time, performed);
+    time where (value.empty() and (low.exists() or high.exists())) -> resource.performed = create('Period') as performed then IVLTSToPeriod(time, performed);
+  };
+  procedure.targetSiteCode as site -> resource.bodySite as cc then CDToCodeableConcept(site, cc);
+  procedure.author last as author -> resource.recorder as ref then AuthorReference(author, ref, bundle);
+  procedure.performer as performer -> resource.performer as p, p.actor as ref then PerformerReference(performer, ref, bundle);
+  procedure.entryRelationship as relationship then {
+    relationship.observation : Indication as indication then {
+      indication.value as value -> resource.reasonCode as cc then CDToCodeableConcept(value, cc);
+    };
+    relationship.act : CommentActivity as comment -> resource.note as note then CommentToAnnotation(comment, note);
+  };
+}

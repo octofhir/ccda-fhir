@@ -1,0 +1,86 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-patient-to-cda'
+/// name = 'FhirPatientToCda'
+/// title = 'US Core Patient to the C-CDA recordTarget'
+/// status = 'active'
+/// description = 'A US Core 6.1.0 Patient to the patient role of a C-CDA document, after "Patient FHIR → CDA" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-patient-to-cda" = "FhirPatientToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/fhir/StructureDefinition/Extension" alias Extension as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PatientRole" alias PatientRole as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Patient" alias CdaPatient as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group PatientToPatientRole(source patient : Patient, target role : PatientRole, source bundle : Bundle) {
+  patient.identifier as identifier -> role.id as id then IdentifierToII(identifier, id);
+  patient.address as address -> role.addr as addr then AddressToAD(address, addr);
+  patient where (address.empty()) -> role.addr as addr, addr.nullFlavor = 'NI';
+  patient.telecom as telecom -> role.telecom as tel then ContactPointToTEL(telecom, tel);
+  patient where (telecom.empty()) -> role.telecom as tel, tel.nullFlavor = 'NI';
+  patient -> role.patient as p then PatientToCdaPatient(patient, p);
+  patient.managingOrganization as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Organization as organization -> role.providerOrganization as org then OrganizationToOrganization(organization, org);
+    };
+  };
+}
+
+group PatientToCdaPatient(source patient : Patient, target p : CdaPatient) {
+  patient.name as name -> p.name as pn then HumanNameToPN(name, pn);
+  patient.gender as gender where (gender != 'unknown') -> p.administrativeGenderCode as code, code.code = translate(gender, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-AdministrativeGender', 'code'), code.codeSystem = '2.16.840.1.113883.5.1';
+  patient where (gender.empty() or gender = 'unknown') -> p.administrativeGenderCode as code, code.nullFlavor = 'UNK';
+  patient.birthDate as date -> p.birthTime as time then DateTimeToTS(date, time);
+  patient.deceased : boolean as deceased -> p.sdtcDeceasedInd as ind then DateTimeToTS(deceased, ind);
+  patient.deceased : dateTime as deceased -> p.sdtcDeceasedInd as ind, ind.value = true, p.sdtcDeceasedTime as time then DateTimeToTS(deceased, time);
+  patient.maritalStatus as status -> p.maritalStatusCode = create('CE') as code then CodeableConceptToCD(status, code);
+  patient.extension as ext where (url = 'http://hl7.org/fhir/StructureDefinition/patient-religion') then {
+    ext.value : CodeableConcept as religion -> p.religiousAffiliationCode = create('CE') as code then CodeableConceptToCD(religion, code);
+  };
+  // Race and ethnicity: the first OMB category in raceCode, the rest in sdtc:raceCode.
+  patient.extension as ext where (url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race') then OmbCodes(ext, p, 'race');
+  patient where (extension.where(url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race').extension.where(url = 'ombCategory').empty()) -> p.raceCode as code, code.nullFlavor = 'UNK';
+  patient.extension as ext where (url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity') then OmbCodes(ext, p, 'ethnicity');
+  patient where (extension.where(url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity').extension.where(url = 'ombCategory').empty()) -> p.ethnicGroupCode as code, code.nullFlavor = 'UNK';
+  patient.communication as communication -> p.languageCommunication as language then {
+    communication.language as cc then {
+      cc.coding first as coding then {
+        coding.code as code -> language.languageCode as lc, lc.code = code;
+      };
+    };
+    communication.extension as proficiency where (url = 'http://hl7.org/fhir/StructureDefinition/patient-proficiency') then {
+      proficiency.extension as type where (url = 'type') then {
+        type.value : Coding as coding -> language.modeCode = create('CE') as code then CodingToCD(coding, code);
+      };
+      proficiency.extension as level where (url = 'level') then {
+        level.value : Coding as coding -> language.proficiencyLevelCode = create('CE') as code then CodingToCD(coding, code);
+      };
+    };
+    communication.preferred as preferred -> language.preferenceInd as ind, ind.value = preferred;
+  };
+}
+
+group OmbCodes(source ext : Extension, target p : CdaPatient, source kind : string) {
+  ext.extension as category where (url = 'ombCategory' and %ext.extension.where(url = 'ombCategory').first().value.code = value.code) then {
+    category.value : Coding as coding where (%kind = 'race') -> p.raceCode = create('CE') as code then OmbCode(coding, code);
+    category.value : Coding as coding where (%kind = 'ethnicity') -> p.ethnicGroupCode = create('CE') as code then OmbCode(coding, code);
+  };
+  ext.extension as other where (url = 'detailed' or (url = 'ombCategory' and %ext.extension.where(url = 'ombCategory').first().value.code != value.code)) then {
+    other.value : Coding as coding where (%kind = 'race') -> p.sdtcRaceCode = create('CE') as code then OmbCode(coding, code);
+    other.value : Coding as coding where (%kind = 'ethnicity') -> p.sdtcEthnicGroupCode = create('CE') as code then OmbCode(coding, code);
+  };
+}
+
+group OmbCode(source coding : Coding, target code : CE) {
+  coding.system as system where (system = 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor') then {
+    coding.code as c -> code.nullFlavor = c;
+  };
+  coding.system as system where (system != 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor') then {
+    coding.code as c -> code.code = c, code.codeSystem = '2.16.840.1.113883.6.238';
+    coding.display as d -> code.displayName = d;
+  };
+}

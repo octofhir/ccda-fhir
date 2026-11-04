@@ -1,0 +1,131 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/ccda-to-fhir'
+/// name = 'CcdaToFhir'
+/// title = 'C-CDA document to a FHIR R4 document Bundle'
+/// status = 'active'
+/// description = 'A C-CDA document to a FHIR document Bundle: the header to Composition, Patient, Practitioner and Organization, each section to a Composition section with its narrative, and the entries of the sections the maps know to US Core resources.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/ccda-to-fhir" = "CcdaToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ClinicalDocument" alias ClinicalDocument as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PatientRole" alias PatientRole as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Author" alias Author as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AllergiesAndIntolerancesSection" alias AllergiesSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProblemSection" alias ProblemSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HealthConcernsSection" alias HealthConcernsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationsSection" alias MedicationsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ImmunizationsSection" alias ImmunizationsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ResultsSection" alias ResultsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/VitalSignsSection" alias VitalSignsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProceduresSection" alias ProceduresSection as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+uses "http://hl7.org/fhir/StructureDefinition/Composition" alias Composition as target
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-patient-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-allergies-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-problems-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-medications-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-immunizations-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-vitals-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-procedures-to-fhir"
+
+group ClinicalDocument(source cda : ClinicalDocument, target bundle : Bundle) {
+  cda -> bundle.type = 'document';
+  cda.id as id -> bundle.identifier as i then IIToIdentifier(id, i);
+  cda.effectiveTime as time where (value.length() > 18) -> bundle.timestamp = create('instant') as ts then TSToDateTime(time, ts);
+  cda -> bundle.entry as entry, entry.resource = create('Composition') as composition, uuid() as compositionId, composition.id = compositionId, entry.fullUrl = append('urn:uuid:', compositionId), uuid() as patientId then {
+    // The patient (the first recordTarget); the sections refer to it either way.
+    cda.recordTarget first as recordTarget then {
+      recordTarget.patientRole as role -> bundle.entry as entry, entry.resource = create('Patient') as patient, patient.id = patientId, entry.fullUrl = append('urn:uuid:', patientId), composition.subject as subject, subject.reference = append('urn:uuid:', patientId) then PatientRoleToPatient(role, patient, bundle);
+    };
+    cda then Header(cda, composition, bundle);
+    cda.component as component then {
+      component.structuredBody as body then {
+        body.component as sectionComponent then {
+          sectionComponent.section as section -> composition.section as compositionSection then Section(section, compositionSection, bundle, patientId);
+        };
+      };
+    };
+  };
+}
+
+// The header: what the document is, who wrote it, who keeps it, who signed it.
+group Header(source cda : ClinicalDocument, target composition : Composition, target bundle : Bundle) {
+  cda -> composition.status = 'final';
+  cda.id as id -> composition.identifier as i then IIToIdentifier(id, i);
+  cda.code as code -> composition.type as type then CDToCodeableConcept(code, type);
+  cda.title as title then {
+    title.xmlText as t where (t.trim().length() > 0) -> composition.title = evaluate(t, $this.trim());
+  };
+  cda.effectiveTime as time -> composition.date = create('dateTime') as date then TSToDateTime(time, date);
+  cda.confidentialityCode as confidentiality then {
+    confidentiality.code as code -> composition.confidentiality = code;
+  };
+  cda.languageCode as language then {
+    language.code as code -> composition.language = code;
+  };
+  cda.author as author then DocumentAuthor(author, composition, bundle);
+  cda.custodian as custodian then {
+    custodian.assignedCustodian as assigned then {
+      assigned.representedCustodianOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), composition.custodian as ref, ref.reference = append('urn:uuid:', id) then CustodianOrganizationToOrganization(org, organization);
+    };
+  };
+  // The service the document is about: Composition.event.
+  cda.documentationOf as documentation then {
+    documentation.serviceEvent as service -> composition.event as event then {
+      service.code as code -> event.code as cc then CDToCodeableConcept(code, cc);
+      service.effectiveTime as time -> event.period as period then IVLTSToPeriod(time, period);
+      service.performer as performer -> event.detail as ref then PerformerReference(performer, ref, bundle);
+    };
+  };
+  cda.legalAuthenticator as authenticator -> composition.attester as attester, attester.mode = 'legal' then {
+    authenticator.time as time -> attester.time = create('dateTime') as date then TSToDateTime(time, date);
+    authenticator.assignedEntity as entity where (assignedPerson.exists()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), attester.party as party, party.reference = append('urn:uuid:', id) then AssignedEntityToPractitioner(entity, practitioner);
+  };
+}
+
+// An author of the document: a Practitioner (with the organization it represents) or a Device.
+group DocumentAuthor(source author : Author, target composition : Composition, target bundle : Bundle) {
+  author where (assignedAuthor.assignedPerson.exists()) -> composition.author as ref then AuthorReference(author, ref, bundle);
+  author.assignedAuthor as assigned where (assignedAuthoringDevice.exists()) -> bundle.entry as entry, entry.resource = create('Device') as device, uuid() as id, device.id = id, entry.fullUrl = append('urn:uuid:', id), composition.author as ref, ref.reference = append('urn:uuid:', id) then {
+    assigned.assignedAuthoringDevice as authoring then AuthoringDeviceToDevice(authoring, device);
+    assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), device.owner as owner, owner.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+  };
+  author.assignedAuthor as assigned where (assignedPerson.empty() and assignedAuthoringDevice.empty()) then {
+    assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), composition.author as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+  };
+}
+
+// A section: its title, code and narrative, the entries of the kinds of section the maps know,
+// and the sections inside it. Every CDA section becomes a Composition section, in order.
+group Section(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.title as title then {
+    title.xmlText as t where (t.trim().length() > 0) -> compositionSection.title = evaluate(t, $this.trim());
+  };
+  section.code as code -> compositionSection.code as c then CDToCodeableConcept(code, c);
+  section.text as text -> compositionSection.text as narrative, narrative.status = 'additional', narrative.div = text;
+  // Sections by any version of their template; the "entries optional" templates of earlier
+  // C-CDA releases (the same OID without the final .1) go the same way.
+  section : AllergiesSection as allergies then AllergiesSection(allergies, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.6') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.6.1').not()) then AllergiesSection(section, compositionSection, bundle, patientId);
+  section : ProblemSection as problems then ProblemSection(problems, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.5') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.5.1').not()) then ProblemSection(section, compositionSection, bundle, patientId);
+  section : HealthConcernsSection as concerns then ProblemSection(concerns, compositionSection, bundle, patientId);
+  section : MedicationsSection as medications then MedicationsSection(medications, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.1') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.1.1').not()) then MedicationsSection(section, compositionSection, bundle, patientId);
+  section : ImmunizationsSection as immunizations then ImmunizationsSection(immunizations, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.2') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.2.1').not()) then ImmunizationsSection(section, compositionSection, bundle, patientId);
+  section : ResultsSection as results then ResultsSection(results, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.3') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.3.1').not()) then ResultsSection(section, compositionSection, bundle, patientId);
+  section : VitalSignsSection as vitals then VitalSignsSection(vitals, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.4') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.4.1').not()) then VitalSignsSection(section, compositionSection, bundle, patientId);
+  section : ProceduresSection as procedures then ProceduresSection(procedures, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.7') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.7.1').not()) then ProceduresSection(section, compositionSection, bundle, patientId);
+  section.component as component then {
+    component.section as nested -> compositionSection.section as compositionNested then Section(nested, compositionNested, bundle, patientId);
+  };
+}

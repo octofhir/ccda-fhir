@@ -1,0 +1,48 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-vitals-to-fhir'
+/// name = 'CdaVitalsToFhir'
+/// title = 'C-CDA vital signs to US Core vital signs'
+/// status = 'active'
+/// description = 'Vital Signs Organizers to a US Core 6.1.0 vital signs panel (85353-1) whose members are the Vital Sign Observations, after "Vital Signs CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-vitals-to-fhir" = "CdaVitalsToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/VitalSignsOrganizer" alias VitalSignsOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/VitalSignObservation" alias VitalSignObservation as source
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
+
+group VitalSignsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.organizer : VitalSignsOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as panel, uuid() as id, panel.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), panel.subject as subject, subject.reference = append('urn:uuid:', patientId) then VitalSignsPanel(organizer, panel, bundle, patientId);
+  };
+}
+
+group VitalSignsPanel(source organizer : VitalSignsOrganizer, target panel : Observation, target bundle : Bundle, source patientId : string) {
+  organizer -> panel.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs';
+  organizer.id as id -> panel.identifier as i then IIToIdentifier(id, i);
+  organizer -> panel.status = 'final';
+  organizer -> panel.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'vital-signs', coding.display = 'Vital Signs';
+  organizer -> panel.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = '85353-1', coding.display = 'Vital signs, weight, height, head circumference, oxygen saturation and BMI panel';
+  organizer.effectiveTime as time then {
+    time.value as v -> panel.effective = create('dateTime') as date then TSToDateTime(time, date);
+    time where (value.empty() and low.value.exists() and (high.empty() or high.value = low.value)) then {
+      time.low as low -> panel.effective = create('dateTime') as date then TSToDateTime(low, date);
+    };
+    time where (value.empty() and low.value.exists() and high.value.exists() and high.value != low.value) -> panel.effective = create('Period') as period then IVLTSToPeriod(time, period);
+  };
+  organizer.component as component then {
+    component.observation : VitalSignObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as vital, uuid() as id, vital.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), panel.hasMember as ref, ref.reference = append('urn:uuid:', id), vital.subject as subject, subject.reference = append('urn:uuid:', patientId) then VitalSign(observation, vital, bundle);
+  };
+}
+
+group VitalSign(source observation : VitalSignObservation, target vital : Observation, target bundle : Bundle) {
+  observation -> vital.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs';
+  observation -> vital.status = 'final';
+  observation -> vital.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'vital-signs', coding.display = 'Vital Signs';
+  observation then ObservationContent(observation, vital, bundle);
+}

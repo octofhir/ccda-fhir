@@ -1,0 +1,67 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-immunizations-to-cda'
+/// name = 'FhirImmunizationsToCda'
+/// title = 'US Core Immunization to C-CDA immunizations'
+/// status = 'active'
+/// description = 'US Core 6.1.0 Immunization to Immunization Activity, after "Immunizations FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-immunizations-to-cda" = "FhirImmunizationsToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Immunization" alias Immunization as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/SubstanceAdministration" alias SubstanceAdministration as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group ImmunizationToActivity(source immunization : Immunization, source bundle : Bundle, target activity : SubstanceAdministration) {
+  immunization -> activity.classCode = 'SBADM', activity.moodCode = 'EVN';
+  immunization -> activity.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.52', template.extension = '2015-08-01';
+  immunization.identifier as identifier -> activity.id as id then IdentifierToII(identifier, id);
+  immunization where (identifier.empty()) -> uuid() as u, activity.id as id, id.root = evaluate(u, $this.upper());
+  immunization where (status = 'not-done') -> activity.negationInd = true, activity.statusCode as sc, sc.code = 'completed';
+  immunization where (status != 'not-done') -> activity.negationInd = false;
+  immunization.status as status where (status = 'completed') -> activity.statusCode as sc, sc.code = 'completed';
+  immunization.status as status where (status = 'entered-in-error') -> activity.statusCode as sc, sc.code = 'nullified';
+  immunization.occurrence : dateTime as occurrence -> activity.effectiveTime = create('IVL_TS') as time then DateTimeToTS(occurrence, time);
+  immunization where (iif(occurrence.toString().exists(), false, true)) -> activity.effectiveTime = create('IVL_TS') as time, time.nullFlavor = 'UNK';
+  immunization.protocolApplied first as applied then {
+    applied.doseNumber : positiveInt as dose -> activity.repeatNumber as repeat, repeat.value = dose;
+  };
+  immunization.route as route -> activity.routeCode = create('CE') as c then CodeableConceptToCD(route, c);
+  immunization.site as site -> activity.approachSiteCode = create('CD') as c then CodeableConceptToCD(site, c);
+  immunization.doseQuantity as dose -> activity.doseQuantity as q then {
+    dose.value as v -> q.value = v;
+    dose.code as code where (%dose.system = 'http://unitsofmeasure.org') -> q.unit = code;
+  };
+  immunization -> activity.consumable as consumable, consumable.manufacturedProduct as product, product.classCode = 'MANU', product.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.54', template.extension = '2014-06-09', product.manufacturedMaterial as material then {
+    immunization.vaccineCode as code -> material.code = create('CE') as c then CodeableConceptToCD(code, c);
+    immunization.lotNumber as lot -> material.lotNumberText as t, t.xmlText = lot;
+    immunization.manufacturer as ref then {
+      bundle.entry as entry where (fullUrl = %ref.reference) then {
+        entry.resource : Organization as organization -> product.manufacturerOrganization as org then OrganizationToOrganization(organization, org);
+      };
+    };
+  };
+  immunization.performer as performer where (function.coding.code.empty() or function.coding.code contains 'AP') then {
+    performer.actor as ref then ReferenceToPerformer(ref, bundle, activity);
+  };
+  immunization.statusReason as reason -> activity.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as refusal then {
+    reason -> refusal.classCode = 'OBS', refusal.moodCode = 'EVN';
+    reason -> refusal.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.53', template.extension = '2024-05-01';
+    reason -> uuid() as u, refusal.id as id, id.root = evaluate(u, $this.upper());
+    reason -> refusal.code as code, code.code = '71798-3', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Immunization not performed reason';
+    reason -> refusal.statusCode as sc, sc.code = 'completed';
+    reason -> refusal.value = create('CD') as value then CodeableConceptToCD(reason, value);
+  };
+  immunization.reasonCode as reason -> activity.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as indication then {
+    reason -> indication.classCode = 'OBS', indication.moodCode = 'EVN';
+    reason -> indication.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.19', template.extension = '2023-05-01';
+    reason -> uuid() as u, indication.id as id, id.root = evaluate(u, $this.upper());
+    reason -> indication.code as code, code.code = '404684003', code.codeSystem = '2.16.840.1.113883.6.96';
+    reason -> indication.statusCode as sc, sc.code = 'completed';
+    reason -> indication.value = create('CD') as value then CodeableConceptToCD(reason, value);
+  };
+  immunization.note as note then AnnotationToComment(note, activity);
+}

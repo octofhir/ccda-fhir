@@ -1,0 +1,118 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-allergies-to-cda'
+/// name = 'FhirAllergiesToCda'
+/// title = 'US Core AllergyIntolerance to C-CDA allergies'
+/// status = 'active'
+/// description = 'US Core 6.1.0 AllergyIntolerance to an Allergy Concern act with an Allergy Intolerance observation, after "Allergies FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping, no multi-vendor consensus).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-allergies-to-cda" = "FhirAllergiesToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/AllergyIntolerance" alias AllergyIntolerance as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Act" alias Act as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group AllergyToConcernAct(source allergy : AllergyIntolerance, source bundle : Bundle, target act : Act) {
+  allergy -> act.classCode = 'ACT', act.moodCode = 'EVN';
+  allergy -> act.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.30', template.extension = '2015-08-01';
+  allergy -> uuid() as u, act.id as id, id.root = evaluate(u, $this.upper());
+  allergy -> act.code as code, code.code = 'CONC', code.codeSystem = '2.16.840.1.113883.5.6';
+  // The concern is active while the allergy is; resolved or inactive allergies are completed concerns.
+  allergy.clinicalStatus as status then {
+    status.coding first as coding then {
+      coding.code as c -> act.statusCode as sc, sc.code = evaluate(c, iif($this = 'active', 'active', 'completed'));
+    };
+  };
+  allergy where (clinicalStatus.empty()) -> act.statusCode as sc, sc.code = 'active';
+  allergy -> act.effectiveTime as time then {
+    allergy.recordedDate as date -> time.low as low then DateTimeToTS(date, low);
+    allergy where (recordedDate.empty()) -> time.low as low, low.nullFlavor = 'UNK';
+    // A completed concern has an end.
+    allergy where (clinicalStatus.coding.code.where($this in ('resolved' | 'inactive')).exists()) -> time.high as high, high.nullFlavor = 'UNK';
+  };
+  allergy -> act.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.observation as observation then AllergyToObservation(allergy, bundle, observation);
+}
+
+group AllergyToObservation(source allergy : AllergyIntolerance, source bundle : Bundle, target observation : Observation) {
+  allergy -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+  allergy -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.7', template.extension = '2014-06-09';
+  allergy -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.24.3.90', template.extension = '2014-06-09';
+  allergy.identifier as identifier -> observation.id as id then IdentifierToII(identifier, id);
+  allergy where (identifier.empty()) -> uuid() as u, observation.id as id, id.root = evaluate(u, $this.upper());
+  allergy -> observation.code as code, code.code = 'ASSERTION', code.codeSystem = '2.16.840.1.113883.5.4';
+  allergy -> observation.statusCode as status, status.code = 'completed';
+  allergy -> observation.effectiveTime as time then {
+    allergy.onset : dateTime as onset -> time.low as low then DateTimeToTS(onset, low);
+    allergy.onset : Period as onset then {
+      onset.start as start -> time.low as low then DateTimeToTS(start, low);
+    };
+    allergy where (onset.empty()) -> time.low as low, low.nullFlavor = 'UNK';
+    allergy.extension as ext where (url = 'http://hl7.org/fhir/StructureDefinition/allergyintolerance-abatement') then {
+      ext.value : dateTime as abatement -> time.high as high then DateTimeToTS(abatement, high);
+    };
+  };
+  // A "no known allergy" code: a negated observation of the kind the code names, with no substance.
+  allergy where (code.coding.where(system = 'http://snomed.info/sct' and code in ('716186003' | '409137002' | '429625007')).exists()) then {
+    allergy -> observation.negationInd = true;
+    allergy.code as cc then {
+      cc.coding first as coding then {
+        coding.code as c -> observation.value = create('CD') as value, value.code = translate(c, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-NoKnownAllergies', 'code'), value.codeSystem = '2.16.840.1.113883.6.96';
+      };
+    };
+    allergy -> observation.participant as participant, participant.typeCode = 'CSM', participant.participantRole as role, role.classCode = 'MANU', role.playingEntity as entity, entity.classCode = 'MMAT', entity.code as code, code.nullFlavor = 'NA';
+  };
+  allergy where (code.coding.where(system = 'http://snomed.info/sct' and code in ('716186003' | '409137002' | '429625007')).empty()) then {
+    // The value from type and category: the codes both FC-AllergyIntoleranceType and
+    // FC-AllergyIntoleranceCategory give for the pair.
+    allergy -> observation.value = create('CD') as value, value.codeSystem = '2.16.840.1.113883.6.96', value.code = evaluate(allergy, iif(type = 'allergy', iif(category contains 'food', '414285001', iif(category contains 'medication', '416098002', '419199007')), iif(type = 'intolerance', iif(category contains 'food', '235719002', iif(category contains 'medication', '59037007', '418038007')), iif(category contains 'food', '418471000', iif(category contains 'medication', '419511003', '420134006')))));
+    allergy.code as cc -> observation.participant as participant, participant.typeCode = 'CSM', participant.participantRole as role, role.classCode = 'MANU', role.playingEntity as entity, entity.classCode = 'MMAT', entity.code = create('CE') as code then CodeableConceptToCD(cc, code);
+  };
+  allergy.recorder as ref -> evaluate(allergy, iif(recordedDate.hasValue(), recordedDate, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, observation);
+  allergy.clinicalStatus as status then {
+    status.coding first as coding then {
+      coding.code as c -> observation.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.observation as statusObservation then {
+        c -> statusObservation.classCode = 'OBS', statusObservation.moodCode = 'EVN';
+        c -> statusObservation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.28', template.extension = '2019-06-20';
+        c -> statusObservation.code as code, code.code = '33999-4', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Status';
+        c -> statusObservation.statusCode as sc, sc.code = 'completed';
+        c -> statusObservation.value = create('CE') as value, value.code = translate(c, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-AllergyStatus', 'code'), value.codeSystem = '2.16.840.1.113883.6.96';
+      };
+    };
+  };
+  allergy.reaction as reaction -> observation.entryRelationship as relationship, relationship.typeCode = 'MFST', relationship.inversionInd = true, relationship.observation as reactionObservation then Reaction(reaction, reactionObservation);
+  allergy.criticality as criticality -> observation.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.observation as criticalityObservation then {
+    criticality -> criticalityObservation.classCode = 'OBS', criticalityObservation.moodCode = 'EVN';
+    criticality -> criticalityObservation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.145';
+    criticality -> criticalityObservation.code as code, code.code = '82606-5', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Criticality';
+    criticality -> criticalityObservation.statusCode as sc, sc.code = 'completed';
+    criticality -> criticalityObservation.value = create('CD') as value, value.code = translate(criticality, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-Criticality', 'code'), value.codeSystem = '2.16.840.1.113883.5.1063';
+  };
+  allergy.note as note then {
+    note.text as text -> observation.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.act as comment then {
+      text -> comment.classCode = 'ACT', comment.moodCode = 'EVN';
+      text -> comment.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.64';
+      text -> comment.code as code, code.code = '48767-8', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Annotation comment';
+      text -> comment.text as t, t.xmlText = text, t.reference as ref, ref.nullFlavor = 'NI';
+    };
+  };
+}
+
+group Reaction(source reaction, target reactionObservation : Observation) {
+  reaction -> reactionObservation.classCode = 'OBS', reactionObservation.moodCode = 'EVN';
+  reaction -> reactionObservation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.9', template.extension = '2014-06-09';
+  reaction -> uuid() as u, reactionObservation.id as id, id.root = evaluate(u, $this.upper());
+  reaction -> reactionObservation.code as code, code.code = 'ASSERTION', code.codeSystem = '2.16.840.1.113883.5.4';
+  reaction -> reactionObservation.statusCode as status, status.code = 'completed';
+  reaction.onset as onset -> reactionObservation.effectiveTime as time, time.low as low then DateTimeToTS(onset, low);
+  reaction.manifestation first as manifestation -> reactionObservation.value = create('CD') as value then CodeableConceptToCD(manifestation, value);
+  reaction.severity as severity -> reactionObservation.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.observation as severityObservation then {
+    severity -> severityObservation.classCode = 'OBS', severityObservation.moodCode = 'EVN';
+    severity -> severityObservation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.8', template.extension = '2014-06-09';
+    severity -> severityObservation.code as code, code.code = 'SEV', code.codeSystem = '2.16.840.1.113883.5.4';
+    severity -> severityObservation.statusCode as sc, sc.code = 'completed';
+    severity -> severityObservation.value = create('CD') as value, value.code = translate(severity, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-Severity', 'code'), value.codeSystem = '2.16.840.1.113883.6.96';
+  };
+}

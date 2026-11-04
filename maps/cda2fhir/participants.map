@@ -1,0 +1,113 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir'
+/// name = 'CdaParticipantsToFhir'
+/// title = 'CDA participants to FHIR R4'
+/// status = 'active'
+/// description = 'Authors, assigned entities and organizations to Practitioner, Device and Organization, after the participations mapping of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir" = "CdaParticipantsToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/AssignedAuthor" alias AssignedAuthor as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/AssignedEntity" alias AssignedEntity as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Person" alias Person as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organization" alias CdaOrganization as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CustodianOrganization" alias CustodianOrganization as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/AuthoringDevice" alias AuthoringDevice as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Author" alias Author as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Performer2" alias Performer2 as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/Reference" alias Reference as target
+uses "http://hl7.org/fhir/StructureDefinition/Annotation" alias Annotation as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+uses "http://hl7.org/fhir/StructureDefinition/Practitioner" alias Practitioner as target
+uses "http://hl7.org/fhir/StructureDefinition/PractitionerRole" alias PractitionerRole as target
+uses "http://hl7.org/fhir/StructureDefinition/Organization" alias Organization as target
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+
+// An assigned author with a person: the Practitioner.
+group AssignedAuthorToPractitioner(source src : AssignedAuthor, target tgt : Practitioner) {
+  src.id as id -> tgt.identifier as i then IIToIdentifier(id, i);
+  src.assignedPerson as person then PersonToPractitioner(person, tgt);
+  src.addr as addr -> tgt.address as a then ADToAddress(addr, a);
+  src.telecom as telecom -> tgt.telecom as t then TELToContactPoint(telecom, t);
+}
+
+group AssignedEntityToPractitioner(source src : AssignedEntity, target tgt : Practitioner) {
+  src.id as id -> tgt.identifier as i then IIToIdentifier(id, i);
+  src.assignedPerson as person then PersonToPractitioner(person, tgt);
+  src.addr as addr -> tgt.address as a then ADToAddress(addr, a);
+  src.telecom as telecom -> tgt.telecom as t then TELToContactPoint(telecom, t);
+}
+
+group PersonToPractitioner(source src : Person, target tgt : Practitioner) {
+  src.name as name -> tgt.name as n then PNToHumanName(name, n);
+}
+
+group AuthoringDeviceToDevice(source src : AuthoringDevice, target tgt : Device) {
+  src.manufacturerModelName as model then {
+    model.displayName as d -> tgt.deviceName as dn, dn.name = d, dn.type = 'model-name';
+    model.xmlText as t where (t.trim().length() > 0) -> tgt.deviceName as dn, dn.name = evaluate(t, $this.trim()), dn.type = 'model-name';
+  };
+  src.softwareName as software then {
+    software.displayName as d -> tgt.version as v, v.value = d;
+    software.xmlText as t where (t.trim().length() > 0) -> tgt.version as v, v.value = evaluate(t, $this.trim());
+  };
+}
+
+group OrganizationToOrganization(source src : CdaOrganization, target tgt : Organization) {
+  src.id as id -> tgt.identifier as i then IIToIdentifier(id, i);
+  src.name as name then {
+    name.item as item then {
+      item.xmlText as t where (t.trim().length() > 0) -> tgt.name = evaluate(t, $this.trim());
+    };
+  };
+  src.telecom as telecom -> tgt.telecom as t then TELToContactPoint(telecom, t);
+  src.addr as addr -> tgt.address as a then ADToAddress(addr, a);
+  src -> tgt.active = true;
+}
+
+group CustodianOrganizationToOrganization(source src : CustodianOrganization, target tgt : Organization) {
+  src.id as id -> tgt.identifier as i then IIToIdentifier(id, i);
+  src.name as name then {
+    name.item as item then {
+      item.xmlText as t where (t.trim().length() > 0) -> tgt.name = evaluate(t, $this.trim());
+    };
+  };
+  src.telecom as telecom -> tgt.telecom as t then TELToContactPoint(telecom, t);
+  src.addr as addr -> tgt.address as a then ADToAddress(addr, a);
+  src -> tgt.active = true;
+}
+
+// A reference to who an author is, made as Bundle entries: the Practitioner, or — when the
+// author has a role code or represents an organization — a PractitionerRole with the
+// Practitioner, the code and the Organization (the participations mapping). An author that is a
+// device makes no reference.
+group AuthorReference(source author : Author, target ref : Reference, target bundle : Bundle) {
+  author.assignedAuthor as assigned where (assignedPerson.exists() and code.empty() and representedOrganization.empty()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then AssignedAuthorToPractitioner(assigned, practitioner);
+  author.assignedAuthor as assigned where (assignedPerson.exists() and (code.exists() or representedOrganization.exists())) -> bundle.entry as roleEntry, roleEntry.resource = create('PractitionerRole') as role, uuid() as roleId, role.id = roleId, roleEntry.fullUrl = append('urn:uuid:', roleId), ref.reference = append('urn:uuid:', roleId) then AssignedAuthorToRole(assigned, role, bundle);
+}
+
+group AssignedAuthorToRole(source assigned : AssignedAuthor, target role : PractitionerRole, target bundle : Bundle) {
+  assigned -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), role.practitioner as ref, ref.reference = append('urn:uuid:', id) then AssignedAuthorToPractitioner(assigned, practitioner);
+  assigned.code as code -> role.code as cc then CDToCodeableConcept(code, cc);
+  assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), role.organization as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+}
+
+// A reference to the Practitioner a performer is.
+group PerformerReference(source performer : Performer2, target ref : Reference, target bundle : Bundle) {
+  performer.assignedEntity as assigned where (assignedPerson.exists()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then AssignedEntityToPractitioner(assigned, practitioner);
+  performer.assignedEntity as assigned where (assignedPerson.empty()) then {
+    assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+  };
+}
+
+// Comment Activity → Annotation (its text, references to the narrative resolved).
+group CommentToAnnotation(source comment : CommentActivity, target note : Annotation) {
+  comment.text as text then {
+    text.xmlText as t where (t.trim().length() > 0) -> note.text = evaluate(t, $this.trim());
+  };
+  comment.author first as author then {
+    author.time as time -> note.time = create('dateTime') as date then TSToDateTime(time, date);
+  };
+}

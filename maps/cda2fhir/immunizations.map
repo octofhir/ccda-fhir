@@ -1,0 +1,76 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-immunizations-to-fhir'
+/// name = 'CdaImmunizationsToFhir'
+/// title = 'C-CDA immunizations to US Core Immunization'
+/// status = 'active'
+/// description = 'Immunization Activity to US Core 6.1.0 Immunization, after "Immunizations CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-immunizations-to-fhir" = "CdaImmunizationsToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ImmunizationActivity" alias ImmunizationActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ImmunizationNotGivenReason" alias ImmunizationNotGivenReason as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/Immunization" alias Immunization as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group ImmunizationsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.substanceAdministration : ImmunizationActivity as activity where (moodCode = 'EVN') -> bundle.entry as resourceEntry, resourceEntry.resource = create('Immunization') as immunization, uuid() as id, immunization.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), immunization.patient as patient, patient.reference = append('urn:uuid:', patientId) then Immunization(activity, immunization, bundle);
+  };
+}
+
+// Status: not done when negated, otherwise from statusCode. CF-ImmunizationStatus gives two
+// targets for `completed` (completed, and not-done as wider), so the status is stated here:
+// completed is completed, nullified entered-in-error, anything else not done.
+group Immunization(source activity : ImmunizationActivity, target immunization : Immunization, target bundle : Bundle) {
+  activity -> immunization.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-immunization';
+  activity.id as id -> immunization.identifier as i then IIToIdentifier(id, i);
+  activity where (negationInd = true) -> immunization.status = 'not-done';
+  activity where (negationInd.exists().not() or negationInd = false) then {
+    activity.statusCode as status then {
+      status.code as code -> immunization.status = evaluate(code, iif($this = 'completed', 'completed', iif($this = 'nullified', 'entered-in-error', 'not-done')));
+    };
+    activity where (statusCode.code.empty()) -> immunization.status = 'completed';
+  };
+  activity.consumable as consumable then {
+    consumable.manufacturedProduct as product then {
+      product.manufacturedMaterial as material then {
+        material.code as code -> immunization.vaccineCode as cc then CDToCodeableConcept(code, cc);
+        material.lotNumberText as lot then {
+          lot.xmlText as t where (t.trim().length() > 0) -> immunization.lotNumber = evaluate(t, $this.trim());
+        };
+      };
+      product.manufacturerOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), immunization.manufacturer as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+    };
+  };
+  activity.effectiveTime first as time then {
+    time.value as v -> immunization.occurrence = create('dateTime') as date then TSToDateTime(time, date);
+    time.low as low where (%time.value.empty() and value.exists()) -> immunization.occurrence = create('dateTime') as date then TSToDateTime(low, date);
+  };
+  activity where (effectiveTime.where(value.exists() or low.value.exists()).empty()) -> immunization.occurrence = create('dateTime') as date, date.extension as ext, ext.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', ext.value = create('code') as reason, reason.value = 'unknown';
+  activity.repeatNumber as repeat then {
+    repeat.value as v -> immunization.protocolApplied as applied, applied.doseNumber = create('positiveInt') as dose, dose.value = v;
+  };
+  activity.routeCode as route -> immunization.route as cc then CDToCodeableConcept(route, cc);
+  activity.approachSiteCode first as site -> immunization.site as cc then CDToCodeableConcept(site, cc);
+  activity.doseQuantity as dose -> immunization.doseQuantity as q then PQToQuantity(dose, q);
+  activity.author first as author then {
+    author.time as time -> immunization.recorded = create('dateTime') as date then TSToDateTime(time, date);
+  };
+  activity.performer as performer -> immunization.performer as p, p.function as f, f.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v2-0443', coding.code = 'AP', p.actor as ref then PerformerReference(performer, ref, bundle);
+  activity.entryRelationship as relationship then {
+    // The reason is the value (C-CDA 3.0 and later), or the code (earlier releases).
+    relationship.observation : ImmunizationNotGivenReason as reason then {
+      reason.value as value -> immunization.statusReason as cc then CDToCodeableConcept(value, cc);
+      reason.code as code where (%reason.value.empty()) -> immunization.statusReason as cc then CDToCodeableConcept(code, cc);
+    };
+    relationship.observation : Indication as indication then {
+      indication.value as value -> immunization.reasonCode as cc then CDToCodeableConcept(value, cc);
+    };
+    relationship.act : CommentActivity as comment -> immunization.note as note then CommentToAnnotation(comment, note);
+  };
+}

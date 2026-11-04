@@ -1,0 +1,137 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-to-ccda'
+/// name = 'FhirToCcda'
+/// title = 'FHIR R4 document Bundle to a C-CDA document'
+/// status = 'active'
+/// description = 'A FHIR document Bundle to a C-CDA document (US Realm Header, C-CDA 5.0.0 templates): the Composition to the header and sections, the resources its sections refer to to entries.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-to-ccda" = "FhirToCcda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/fhir/StructureDefinition/Composition" alias Composition as source
+uses "http://hl7.org/fhir/StructureDefinition/Reference" alias Reference as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ClinicalDocument" alias ClinicalDocument as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Author" alias Author as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-patient-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-allergies-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-problems-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-medications-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-immunizations-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-procedures-to-cda"
+
+group Document(source bundle : Bundle, target cda : ClinicalDocument) {
+  bundle.entry first as entry then {
+    entry.resource : Composition as composition then Header(composition, bundle, cda);
+  };
+}
+
+// The US Realm Header; a summary of episode (LOINC 34133-9) is also a CCD.
+group Header(source composition : Composition, source bundle : Bundle, target cda : ClinicalDocument) {
+  composition -> cda.realmCode as realm, realm.code = 'US';
+  composition -> cda.typeId as typeId, typeId.root = '2.16.840.1.113883.1.3', typeId.extension = 'POCD_HD000040';
+  composition -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.1.1', template.extension = '2024-05-01';
+  composition where (type.coding.where(system = 'http://loinc.org' and code = '34133-9').exists()) -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.1.2', template.extension = '2024-05-01';
+  composition.identifier as identifier -> cda.id as id then IdentifierToII(identifier, id);
+  composition where (identifier.empty()) then {
+    bundle.identifier as identifier -> cda.id as id then IdentifierToII(identifier, id);
+  };
+  composition where (identifier.empty() and %bundle.identifier.empty()) -> uuid() as u, cda.id as id, id.root = evaluate(u, $this.upper());
+  composition.type as type -> cda.code = create('CE') as code then CodeableConceptToCD(type, code);
+  composition.title as title -> cda.title as t, t.xmlText = title;
+  composition.date as date -> cda.effectiveTime as time then DateTimeToTS(date, time);
+  composition.confidentiality as confidentiality -> cda.confidentialityCode as code, code.code = confidentiality, code.codeSystem = '2.16.840.1.113883.5.25';
+  composition where (confidentiality.empty()) -> cda.confidentialityCode as code, code.code = 'N', code.codeSystem = '2.16.840.1.113883.5.25';
+  composition.language as language -> cda.languageCode as code, code.code = language;
+  composition where (language.empty()) -> cda.languageCode as code, code.code = 'en-US';
+  composition.subject as subject then {
+    bundle.entry as entry where (fullUrl = %subject.reference) then {
+      entry.resource : Patient as patient -> cda.recordTarget as target, target.patientRole as role then PatientToPatientRole(patient, role, bundle);
+    };
+  };
+  composition.author as author then {
+    bundle.entry as entry where (fullUrl = %author.reference) then {
+      entry.resource as resource -> cda.author as cdaAuthor then Author(resource, composition, bundle, cdaAuthor);
+    };
+  };
+  composition.custodian as custodian then {
+    bundle.entry as entry where (fullUrl = %custodian.reference) then {
+      entry.resource : Organization as organization -> cda.custodian as c, c.assignedCustodian as assigned, assigned.representedCustodianOrganization as org then OrganizationToCustodian(organization, org);
+    };
+  };
+  // Composition.event: documentationOf/serviceEvent (a CCD needs one, with a period).
+  composition.event as event -> cda.documentationOf as documentation, documentation.serviceEvent as service, service.classCode = 'PCPR' then {
+    event.code first as code -> service.code = create('CE') as c then CodeableConceptToCD(code, c);
+    event.period as period -> service.effectiveTime as time then {
+      period then PeriodToIVLTS(period, time);
+      period where (end.empty()) -> time.high as high, high.nullFlavor = 'UNK';
+    };
+    event where (period.empty()) -> service.effectiveTime as time, time.low as low, low.nullFlavor = 'UNK';
+    event.detail as ref then ReferenceToPerformer(ref, bundle, service);
+  };
+  composition where (event.empty() and type.coding.where(system = 'http://loinc.org' and code = '34133-9').exists()) -> cda.documentationOf as documentation, documentation.serviceEvent as service, service.classCode = 'PCPR', service.effectiveTime as time, time.low as low, low.nullFlavor = 'UNK', time.high as high, high.nullFlavor = 'UNK';
+  composition.attester as attester where (mode = 'legal') then {
+    attester.party as party then {
+      bundle.entry as entry where (fullUrl = %party.reference) then {
+        entry.resource : Practitioner as practitioner -> cda.legalAuthenticator as authenticator, authenticator.signatureCode as signature, signature.code = 'S', authenticator.assignedEntity as entity then {
+          attester.time as time -> authenticator.time as t then DateTimeToTS(time, t);
+          attester where (time.empty()) then {
+            composition.date as date -> authenticator.time as t then DateTimeToTS(date, t);
+          };
+          practitioner then PractitionerToAssignedEntity(practitioner, entity);
+        };
+      };
+    };
+  };
+  composition -> cda.component as component, component.structuredBody as body then {
+    composition.section as section -> body.component as sectionComponent, sectionComponent.section as cdaSection then Section(section, bundle, cdaSection);
+  };
+}
+
+// An author: a Practitioner or a Device, at the time of the document.
+group Author(source resource, source composition : Composition, source bundle : Bundle, target author : Author) {
+  composition.date as date -> author.time as time then DateTimeToTS(date, time);
+  resource : Practitioner as practitioner -> author.assignedAuthor as assigned then PractitionerToAssignedAuthor(practitioner, assigned);
+  resource : PractitionerRole as role -> author.assignedAuthor as assigned then RoleToAssignedAuthor(role, bundle, assigned);
+  resource : Device as device -> author.assignedAuthor as assigned then DeviceToAssignedAuthor(device, bundle, assigned);
+  resource : Organization as organization -> author.assignedAuthor as assigned, assigned.id as id, id.nullFlavor = 'NA', assigned.representedOrganization as org then OrganizationToOrganization(organization, org);
+}
+
+// A section: its template by its LOINC code (the C-CDA 5.0.0 section templates), title, code,
+// narrative, and the entries of the kinds the maps know, by resource type.
+group Section(source section, source bundle : Bundle, target cdaSection : Section) {
+  section.code as code then {
+    code.coding as coding where (system = 'http://loinc.org') then {
+      coding.code as c where (c = '48765-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.6.1', template.extension = '2015-08-01';
+      coding.code as c where (c = '11450-4') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.5.1', template.extension = '2015-08-01';
+      coding.code as c where (c = '75310-3') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.58', template.extension = '2015-08-01';
+      coding.code as c where (c = '10160-0') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.1.1', template.extension = '2014-06-09';
+      coding.code as c where (c = '11369-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.2.1', template.extension = '2015-08-01';
+      coding.code as c where (c = '30954-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.3.1', template.extension = '2015-08-01';
+      coding.code as c where (c = '8716-3') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.4.1', template.extension = '2015-08-01';
+      coding.code as c where (c = '47519-4') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.7.1', template.extension = '2014-06-09';
+    };
+  };
+  section.code as code -> cdaSection.code = create('CE') as c then CodeableConceptToCD(code, c);
+  section.title as title -> cdaSection.title as t, t.xmlText = title;
+  section.text as text then {
+    text.div as div -> cdaSection.text = div;
+  };
+  section.entry as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : AllergyIntolerance as allergy -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then AllergyToConcernAct(allergy, bundle, act);
+      entry.resource : Condition as condition -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then ConditionToConcernAct(condition, bundle, act);
+      entry.resource : MedicationRequest as request -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.substanceAdministration as activity then MedicationRequestToActivity(request, bundle, activity);
+      entry.resource : Immunization as immunization -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.substanceAdministration as activity then ImmunizationToActivity(immunization, bundle, activity);
+      entry.resource : DiagnosticReport as report -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.organizer as organizer then ReportToOrganizer(report, bundle, organizer);
+      entry.resource : Observation as panel where (category.coding.where(code = 'vital-signs').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.organizer as organizer then PanelToOrganizer(panel, bundle, organizer);
+      entry.resource : Procedure as procedure -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.procedure as cdaProcedure then ProcedureToCda(procedure, bundle, cdaProcedure);
+    };
+  };
+  // A section whose template requires entries and that has none says so.
+  section where (entry.empty() and code.coding.where(system = 'http://loinc.org' and code in ('48765-2' | '11450-4' | '75310-3' | '10160-0' | '11369-6' | '30954-2' | '8716-3' | '47519-4')).exists()) -> cdaSection.nullFlavor = 'NI';
+  section.section as nested -> cdaSection.component as component, component.section as cdaNested then Section(nested, bundle, cdaNested);
+}

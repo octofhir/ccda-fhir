@@ -1,0 +1,106 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-medications-to-fhir'
+/// name = 'CdaMedicationsToFhir'
+/// title = 'C-CDA medications to US Core MedicationRequest'
+/// status = 'active'
+/// description = 'Medication Activity to US Core 6.1.0 MedicationRequest, after "Medications CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-medications-to-fhir" = "CdaMedicationsToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PIVL-TS" alias PIVL_TS as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/EIVL-TS" alias EIVL_TS as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-TS" alias IVL_TS as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationActivity" alias MedicationActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationFreeTextSig" alias MedicationFreeTextSig as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationSupplyOrder" alias MedicationSupplyOrder as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/InstructionActivity" alias InstructionActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/MedicationRequest" alias MedicationRequest as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group MedicationsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then MedicationRequest(activity, request, bundle);
+  };
+}
+
+group MedicationRequest(source activity : MedicationActivity, target request : MedicationRequest, target bundle : Bundle) {
+  activity -> request.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest';
+  activity.id as id -> request.identifier as i then IIToIdentifier(id, i);
+  activity.moodCode as mood -> request.intent = translate(mood, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-MedActivityMood', 'code');
+  activity.statusCode as status then {
+    status.code as code -> request.status = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-MedicationStatus', 'code');
+  };
+  activity where (statusCode.code.empty()) -> request.status = 'unknown';
+  activity where (negationInd = true) -> request.doNotPerform = true;
+  activity.consumable as consumable then {
+    consumable.manufacturedProduct as product then {
+      product.manufacturedMaterial as material then {
+        material.code as code -> request.medication = create('CodeableConcept') as cc then CDToCodeableConcept(code, cc);
+      };
+    };
+  };
+  activity.author last as author -> request.requester as ref then AuthorReference(author, ref, bundle);
+  activity.author first as author then {
+    author.time as time -> request.authoredOn = create('dateTime') as date then TSToDateTime(time, date);
+  };
+  activity -> request.dosageInstruction as dosage then Dosage(activity, dosage);
+  activity.entryRelationship as relationship then {
+    relationship.observation : Indication as indication then {
+      indication.value as value -> request.reasonCode as cc then CDToCodeableConcept(value, cc);
+    };
+    relationship.supply : MedicationSupplyOrder as supply -> request.dispenseRequest as dispense then {
+      supply.effectiveTime as time then {
+        time.high as high where (value.exists()) -> dispense.validityPeriod as period, period.end = create('dateTime') as end then TSToDateTime(high, end);
+      };
+      supply.repeatNumber as repeat then {
+        repeat.value as v where (v > 0) -> dispense.numberOfRepeatsAllowed = evaluate(v, $this - 1);
+      };
+      supply.quantity as quantity -> dispense.quantity as q then PQToQuantity(quantity, q);
+    };
+    relationship.act : CommentActivity as comment -> request.note as note then CommentToAnnotation(comment, note);
+  };
+}
+
+// Dosage: effectiveTime[1] the bounds (or a single time), a PIVL_TS or EIVL_TS the frequency,
+// route, site, dose and rate, the free text sig, instructions.
+group Dosage(source activity : MedicationActivity, target dosage) {
+  activity.effectiveTime first as time where (value.exists()) -> dosage.timing as timing, timing.event = create('dateTime') as event then TSToDateTime(time, event);
+  activity.effectiveTime first as time where (value.empty() and (low.exists() or high.exists())) -> dosage.timing as timing, timing.repeat as repeat, repeat.bounds = create('Period') as bounds then IVLTSToPeriod(time, bounds);
+  activity.effectiveTime : PIVL_TS as periodic -> dosage.timing as timing, timing.repeat as repeat then {
+    periodic.period as period then {
+      period.value as v -> repeat.period = v, repeat.frequency = 1;
+      period.unit as unit where (unit in ('s' | 'min' | 'h' | 'd' | 'wk' | 'mo' | 'a')) -> repeat.periodUnit = unit;
+    };
+  };
+  activity.effectiveTime : EIVL_TS as event -> dosage.timing as timing, timing.repeat as repeat then {
+    event.event as e then {
+      e.code as code -> repeat.when = code;
+    };
+  };
+  activity.precondition first as precondition -> dosage.asNeeded = true;
+  activity.routeCode as route -> dosage.route as cc then CDToCodeableConcept(route, cc);
+  activity.approachSiteCode first as site -> dosage.site as cc then CDToCodeableConcept(site, cc);
+  activity.doseQuantity as dose -> dosage.doseAndRate as doseAndRate then {
+    dose.value as v where (%dose.low.empty()) -> doseAndRate.dose = create('Quantity') as q then PQToQuantity(dose, q);
+    dose.low as low -> doseAndRate.dose = create('Range') as range, range.low as q then PQToQuantity(low, q);
+  };
+  activity.rateQuantity as rate -> dosage.doseAndRate as doseAndRate, doseAndRate.rate = create('Quantity') as q then PQToQuantity(rate, q);
+  activity.entryRelationship as relationship then {
+    relationship.substanceAdministration : MedicationFreeTextSig as sig then {
+      sig.text as text then {
+        text.xmlText as t where (t.trim().length() > 0) -> dosage.text = evaluate(t, $this.trim());
+      };
+    };
+    relationship.act : InstructionActivity as instruction then {
+      instruction.text as text then {
+        text.xmlText as t where (t.trim().length() > 0) -> dosage.patientInstruction = evaluate(t, $this.trim());
+      };
+      instruction.code as code where (code.exists()) -> dosage.additionalInstruction as cc then CDToCodeableConcept(code, cc);
+    };
+  };
+}

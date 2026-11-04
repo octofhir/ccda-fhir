@@ -1,0 +1,380 @@
+{
+  "resourceType": "ConceptMap",
+  "id": "FC-ImmunizationRefusal",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg",
+      "valueCode": "cgp"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm",
+      "valueInteger": 2,
+      "_valueInteger": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status",
+      "valueCode": "trial-use",
+      "_valueCode": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    }
+  ],
+  "url": "http://hl7.org/fhir/us/ccda/ConceptMap/FC-ImmunizationRefusal",
+  "version": "2.0.0",
+  "name": "FHIRtoCCDAImmunizationRefusal",
+  "title": "FHIR Immunization Status Reason to C-CDA Immunization Refusal",
+  "status": "active",
+  "experimental": false,
+  "date": "2026-06-05T23:32:24+10:00",
+  "publisher": "HL7 International / Cross-Group Projects",
+  "contact": [
+    {
+      "name": "HL7 International / Cross-Group Projects",
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://www.hl7.org/Special/committees/cgp"
+        }
+      ]
+    }
+  ],
+  "description": "FHIR Immunization Status Reason to C-CDA Immunization Refusal",
+  "jurisdiction": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US"
+        }
+      ]
+    }
+  ],
+  "sourceUri": "http://hl7.org/fhir/ValueSet/immunization-status-reason",
+  "targetUri": "http://cts.nlm.nih.gov/fhir/ValueSet/2.16.840.1.113883.1.11.19717",
+  "group": [
+    {
+      "source": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+      "sourceVersion": "4.0.0",
+      "target": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+      "targetVersion": "4.0.0",
+      "element": [
+        {
+          "code": "IMMUNE",
+          "display": "immunity",
+          "target": [
+            {
+              "code": "IMMUNE",
+              "display": "immunity",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "MEDPREC",
+          "display": "medical precaution",
+          "target": [
+            {
+              "code": "MEDPREC",
+              "display": "medical precaution",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "OSTOCK",
+          "display": "product out of stock",
+          "target": [
+            {
+              "code": "OSTOCK",
+              "display": "product out of stock",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "PATOBJ",
+          "display": "patient objection",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "equivalent"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "http://snomed.info/sct",
+      "target": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+      "targetVersion": "4.0.0",
+      "element": [
+        {
+          "code": "171257003",
+          "display": "No consent - Tetanus/low dose diphtheria vaccine",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171265000",
+          "display": "Pertussis vaccine refused",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171266004",
+          "display": "No consent - diphtheria immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171267008",
+          "display": "No consent - tetanus immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171268003",
+          "display": "Polio immunization refused",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171269006",
+          "display": "No consent - measles immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171270007",
+          "display": "No consent - rubella immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171271006",
+          "display": "No consent - BCG",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171272004",
+          "display": "No consent - influenza immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171280006",
+          "display": "No consent for MMR",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171283008",
+          "display": "No consent for any primary immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171285001",
+          "display": "No consent - pre-school vaccinations",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171286000",
+          "display": "No consent - school exit vaccinations",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171291004",
+          "display": "No consent - Haemophilus influenzae type B immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171292006",
+          "display": "No consent pneumococcal immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "171293001",
+          "display": "No consent for MR - Measles/rubella vaccine",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "268559007",
+          "display": "No consent for any immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "310839003",
+          "display": "No consent for MMR1",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "310840001",
+          "display": "No consent for second measles, mumps and rubella vaccine",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "314768003",
+          "display": "No consent diphtheria, tetanus, pertussis immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "314769006",
+          "display": "No consent tetanus plus diphtheria immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "314936001",
+          "display": "No consent for meningitis C immunization",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "407598009",
+          "display": "No consent for 3rd HIB booster",
+          "target": [
+            {
+              "code": "PATOBJ",
+              "display": "patient objection",
+              "equivalence": "wider"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

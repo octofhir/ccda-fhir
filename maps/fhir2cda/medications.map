@@ -1,0 +1,109 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-medications-to-cda'
+/// name = 'FhirMedicationsToCda'
+/// title = 'US Core MedicationRequest to C-CDA medications'
+/// status = 'active'
+/// description = 'US Core 6.1.0 MedicationRequest to Medication Activity, after "Medications FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-medications-to-cda" = "FhirMedicationsToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/MedicationRequest" alias MedicationRequest as source
+uses "http://hl7.org/fhir/StructureDefinition/Medication" alias Medication as source
+uses "http://hl7.org/fhir/StructureDefinition/Dosage" alias Dosage as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/SubstanceAdministration" alias SubstanceAdministration as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-TS" alias IVL_TS as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PIVL-TS" alias PIVL_TS as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/EIVL-TS" alias EIVL_TS as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group MedicationRequestToActivity(source request : MedicationRequest, source bundle : Bundle, target activity : SubstanceAdministration) {
+  request -> activity.classCode = 'SBADM';
+  request -> activity.moodCode = evaluate(request, iif(intent in ('order' | 'original-order' | 'reflex-order' | 'filler-order' | 'instance-order' | 'proposal'), 'INT', 'EVN'));
+  request -> activity.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.16', template.extension = '2014-06-09';
+  request.identifier as identifier -> activity.id as id then IdentifierToII(identifier, id);
+  request where (identifier.empty()) -> uuid() as u, activity.id as id, id.root = evaluate(u, $this.upper());
+  request.status as status -> activity.statusCode as sc, sc.code = translate(status, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-MedicationStatus', 'code');
+  request.doNotPerform as dnp where (dnp = true) -> activity.negationInd = true;
+  request.dosageInstruction first as dosage then DosageToActivity(dosage, activity);
+  request where (dosageInstruction.doseAndRate.dose.exists().not()) -> activity.doseQuantity as dose, dose.nullFlavor = 'NI';
+  request where (iif(dosageInstruction.timing.repeat.bounds.exists() or dosageInstruction.timing.event.exists(), false, true)) -> activity.effectiveTime = create('IVL_TS') as time, time.low as low, low.nullFlavor = 'UNK';
+  request -> activity.consumable as consumable, consumable.manufacturedProduct as product, product.classCode = 'MANU', product.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.23', template.extension = '2014-06-09', product.manufacturedMaterial as material then {
+    request.medication : CodeableConcept as code -> material.code = create('CE') as c then CodeableConceptToCD(code, c);
+    request where (medicationCodeableConcept.exists().not() and medicationReference.exists().not()) -> material.code as code, code.nullFlavor = 'NI';
+    request.medication : Reference as ref then {
+      bundle.entry as entry where (fullUrl = %ref.reference) then {
+        entry.resource : Medication as medication then {
+          medication.code as code -> material.code = create('CE') as c then CodeableConceptToCD(code, c);
+        };
+      };
+    };
+  };
+  request.requester as ref -> evaluate(request, iif(authoredOn.hasValue(), authoredOn, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, activity);
+  request.reasonCode as reason -> activity.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as indication then {
+    reason -> indication.classCode = 'OBS', indication.moodCode = 'EVN';
+    reason -> indication.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.19', template.extension = '2023-05-01';
+    reason -> uuid() as u, indication.id as id, id.root = evaluate(u, $this.upper());
+    reason -> indication.code as code, code.code = '404684003', code.codeSystem = '2.16.840.1.113883.6.96';
+    reason -> indication.statusCode as sc, sc.code = 'completed';
+    reason -> indication.value = create('CD') as value then CodeableConceptToCD(reason, value);
+  };
+  request.dispenseRequest as dispense -> activity.entryRelationship as relationship, relationship.typeCode = 'REFR', relationship.supply as supply then {
+    dispense -> supply.classCode = 'SPLY', supply.moodCode = 'INT';
+    dispense -> supply.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.17', template.extension = '2014-06-09';
+    dispense -> uuid() as u, supply.id as id, id.root = evaluate(u, $this.upper());
+    dispense -> supply.statusCode as sc, sc.code = 'completed';
+    dispense.validityPeriod as period then {
+      period.end as end -> supply.effectiveTime = create('IVL_TS') as time, time.high as high then DateTimeToTS(end, high);
+    };
+    dispense.numberOfRepeatsAllowed as repeats -> supply.repeatNumber as repeat, repeat.value = evaluate(repeats, $this + 1);
+    dispense.quantity as quantity -> supply.quantity as q then QuantityToPQ(quantity, q);
+    request.medication : CodeableConcept as code -> supply.product as product, product.manufacturedProduct as manufactured, manufactured.classCode = 'MANU', manufactured.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.23', template.extension = '2014-06-09', manufactured.manufacturedMaterial as material, material.code = create('CE') as c then CodeableConceptToCD(code, c);
+  };
+  request.note as note then AnnotationToComment(note, activity);
+}
+
+group DosageToActivity(source dosage : Dosage, target activity : SubstanceAdministration) {
+  dosage.timing as timing then {
+    timing.repeat as repeat then {
+      repeat.bounds : Period as bounds -> activity.effectiveTime = create('IVL_TS') as time then PeriodToIVLTS(bounds, time);
+      repeat.period as period -> activity.effectiveTime = create('PIVL_TS') as periodic, periodic.operator = 'A', periodic.institutionSpecified = true, periodic.period as p, p.value = period, p.unit = (%repeat.periodUnit);
+      repeat.when first as when -> activity.effectiveTime = create('EIVL_TS') as event, event.operator = 'A', event.event as e, e.code = when;
+    };
+    timing.event first as event -> activity.effectiveTime = create('IVL_TS') as time then DateTimeToTS(event, time);
+  };
+  dosage.route as route -> activity.routeCode = create('CE') as c then CodeableConceptToCD(route, c);
+  dosage.site as site -> activity.approachSiteCode = create('CD') as c then CodeableConceptToCD(site, c);
+  dosage.doseAndRate first as doseAndRate then {
+    doseAndRate.dose : Quantity as dose -> activity.doseQuantity as q then {
+      dose.value as v -> q.value = v;
+      dose.code as code where (%dose.system = 'http://unitsofmeasure.org') -> q.unit = code;
+    };
+    doseAndRate.dose : Range as dose -> activity.doseQuantity as q then {
+      dose.low as low -> q.low as l then { low.value as v -> l.value = v; low.code as code -> l.unit = code; };
+      dose.high as high -> q.high as h then { high.value as v -> h.value = v; high.code as code -> h.unit = code; };
+    };
+    doseAndRate.rate : Quantity as rate -> activity.rateQuantity as q then {
+      rate.value as v -> q.value = v;
+      rate.code as code where (%rate.system = 'http://unitsofmeasure.org') -> q.unit = code;
+    };
+  };
+  dosage.asNeeded : boolean as asNeeded where (asNeeded = true) -> activity.precondition as precondition, precondition.typeCode = 'PRCN', precondition.criterion as criterion, criterion.code as code, code.nullFlavor = 'NI';
+  dosage.text as text -> activity.entryRelationship as relationship, relationship.typeCode = 'COMP', relationship.substanceAdministration as sig then {
+    text -> sig.classCode = 'SBADM', sig.moodCode = 'EVN';
+    text -> sig.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.147';
+    text -> sig.code as code, code.code = '76662-6', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Instructions Medication';
+    text -> sig.text as t, t.xmlText = text, t.reference as ref, ref.nullFlavor = 'NI';
+    text -> sig.consumable as consumable, consumable.manufacturedProduct as product, product.manufacturedLabeledDrug as drug, drug.nullFlavor = 'NA';
+  };
+  dosage.patientInstruction as instruction -> activity.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.act as act then {
+    instruction -> act.classCode = 'ACT', act.moodCode = 'INT';
+    instruction -> act.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.20', template.extension = '2014-06-09';
+    instruction -> act.code as code, code.code = '171054004', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Pharmacy instruction';
+    instruction -> act.statusCode as sc, sc.code = 'completed';
+    instruction -> act.text as t, t.xmlText = instruction;
+  };
+}

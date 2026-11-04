@@ -1,0 +1,43 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-procedures-to-cda'
+/// name = 'FhirProceduresToCda'
+/// title = 'US Core Procedure to C-CDA procedures'
+/// status = 'active'
+/// description = 'US Core 6.1.0 Procedure to Procedure Activity Procedure, after "Procedures FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-procedures-to-cda" = "FhirProceduresToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Procedure" alias FhirProcedure as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Procedure" alias CdaProcedure as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group ProcedureToCda(source resource : FhirProcedure, source bundle : Bundle, target procedure : CdaProcedure) {
+  resource -> procedure.classCode = 'PROC', procedure.moodCode = 'EVN';
+  resource -> procedure.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.14', template.extension = '2024-05-01';
+  resource.identifier as identifier -> procedure.id as id then IdentifierToII(identifier, id);
+  resource where (identifier.empty()) -> uuid() as u, procedure.id as id, id.root = evaluate(u, $this.upper());
+  resource.code as code -> procedure.code = create('CD') as c then CodeableConceptToCD(code, c);
+  resource where (status = 'not-done') -> procedure.negationInd = true;
+  resource.status as status where (status != 'not-done') -> procedure.statusCode as sc, sc.code = translate(status, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-ProcedureStatus', 'code');
+  resource where (status = 'not-done') -> procedure.statusCode as sc, sc.code = 'completed';
+  resource.performed : dateTime as performed -> procedure.effectiveTime as time then DateTimeToTS(performed, time);
+  resource.performed : Period as performed -> procedure.effectiveTime as time then PeriodToIVLTS(performed, time);
+  resource where (iif(performed.hasValue() or performed.start.exists() or performed.end.exists(), false, true)) -> procedure.effectiveTime as time, time.nullFlavor = 'UNK';
+  resource.bodySite as site -> procedure.targetSiteCode = create('CD') as c then CodeableConceptToCD(site, c);
+  resource.recorder as ref -> evaluate(resource, 'UNK') as time then ReferenceToAuthor(ref, bundle, time, procedure);
+  resource.performer as performer then {
+    performer.actor as ref then ReferenceToPerformer(ref, bundle, procedure);
+  };
+  resource.reasonCode as reason -> procedure.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as indication then {
+    reason -> indication.classCode = 'OBS', indication.moodCode = 'EVN';
+    reason -> indication.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.19', template.extension = '2023-05-01';
+    reason -> uuid() as u, indication.id as id, id.root = evaluate(u, $this.upper());
+    reason -> indication.code as code, code.code = '404684003', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Clinical finding';
+    reason -> indication.statusCode as sc, sc.code = 'completed';
+    reason -> indication.value = create('CD') as value then CodeableConceptToCD(reason, value);
+  };
+  resource.note as note then AnnotationToComment(note, procedure);
+}

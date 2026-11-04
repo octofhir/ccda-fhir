@@ -1,0 +1,143 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda'
+/// name = 'FhirDatatypesToCda'
+/// title = 'FHIR R4 data types to CDA'
+/// status = 'active'
+/// description = 'FHIR R4 data types to CDA data types, as the mapping guidance of C-CDA on FHIR 2.0.0 describes them (FHIR → CDA).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda" = "FhirDatatypesToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Identifier" alias Identifier as source
+uses "http://hl7.org/fhir/StructureDefinition/CodeableConcept" alias CodeableConcept as source
+uses "http://hl7.org/fhir/StructureDefinition/Coding" alias Coding as source
+uses "http://hl7.org/fhir/StructureDefinition/Period" alias Period as source
+uses "http://hl7.org/fhir/StructureDefinition/Quantity" alias Quantity as source
+uses "http://hl7.org/fhir/StructureDefinition/Address" alias Address as source
+uses "http://hl7.org/fhir/StructureDefinition/HumanName" alias HumanName as source
+uses "http://hl7.org/fhir/StructureDefinition/ContactPoint" alias ContactPoint as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/II" alias II as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-TS" alias IVL_TS as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/TS" alias TS as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PQ" alias PQ as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/AD" alias AD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PN" alias PN as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/TEL" alias TEL as target
+
+// FHIR identifier → CDA id (mapping guidance, "FHIR Identifier → CDA id"):
+// - urn:ietf:rfc:3986 with a urn:oid: or urn:uuid: value: the OID or UUID (upper case) as root;
+// - urn:oid: system: the OID as root, the value as extension;
+// - a system with a known OID: that OID as root;
+// - any other system: root 2.16.840.1.113883.4.873 and system and value joined as extension.
+group IdentifierToII(source src : Identifier, target tgt : II) {
+  src.value as value where (%src.system = 'urn:ietf:rfc:3986' and value.startsWith('urn:oid:')) -> tgt.root = evaluate(value, $this.substring(8));
+  src.value as value where (%src.system = 'urn:ietf:rfc:3986' and value.startsWith('urn:uuid:')) -> tgt.root = evaluate(value, $this.substring(9).upper());
+  src.system as system where (system != 'urn:ietf:rfc:3986') then {
+    system as s where (s.startsWith('urn:oid:')) -> tgt.root = evaluate(s, $this.substring(8));
+    system as s where (s.startsWith('urn:uuid:')) -> tgt.root = evaluate(s, $this.substring(9).upper());
+    system as s where (s.startsWith('urn:oid:').not() and s.startsWith('urn:uuid:').not()) -> translate(s, 'http://octofhir.com/ccda-fhir/ConceptMap/uri-to-oid', 'code') as oid, tgt.root = evaluate(oid, iif($this.matches('^[0-2](\\.[0-9]+)+$'), $this, '2.16.840.1.113883.4.873')), tgt.extension = evaluate(oid, iif($this.matches('^[0-2](\\.[0-9]+)+$'), %src.value, $this + iif($this.startsWith('urn:'), ':', '/') + %src.value));
+    system as s where (s.startsWith('urn:oid:') or s.startsWith('urn:uuid:')) then {
+      src.value as value -> tgt.extension = value;
+    };
+  };
+  src.value as value where (%src.system.empty()) -> tgt.nullFlavor = 'NI', tgt.extension = value;
+  src where (value.hasValue().not() and system.hasValue().not()) -> tgt.nullFlavor = 'NI';
+  src.assigner as assigner then {
+    assigner.display as display -> tgt.assigningAuthorityName = display;
+  };
+}
+
+// FHIR CodeableConcept → CDA coding: the first coding is the code, the others translations, the
+// text the originalText. A system without an OID leaves codeSystem out (CDA code systems are OIDs).
+group CodeableConceptToCD(source src : CodeableConcept, target tgt : CD) {
+  src.coding first as coding then CodingToCD(coding, tgt);
+  src.coding not_first as coding -> tgt.translation as translation then CodingToCD(coding, translation);
+  src.text as text -> tgt.originalText as original, original.xmlText = text;
+  src where (coding.empty()) -> tgt.nullFlavor = 'OTH';
+}
+
+group CodingToCD(source src : Coding, target tgt : CD) {
+  src.code as code -> tgt.code = code;
+  src.system as system then SystemToCodeSystem(system, tgt);
+  src.version as version -> tgt.codeSystemVersion = version;
+  src.display as display -> tgt.displayName = display;
+}
+
+group SystemToCodeSystem(source system : uri, target tgt : CD) {
+  system as s where (s.startsWith('urn:oid:')) -> tgt.codeSystem = evaluate(s, $this.substring(8));
+  system as s where (s.startsWith('urn:oid:').not()) -> translate(s, 'http://octofhir.com/ccda-fhir/ConceptMap/uri-to-oid', 'code') as oid, tgt.codeSystem = evaluate(oid, iif($this.matches('^[0-2](\\.[0-9]+)+$'), $this, {}));
+}
+
+group PeriodToIVLTS(source src : Period, target tgt : IVL_TS) {
+  src.start as start -> tgt.low as low then DateTimeToTS(start, low);
+  src.end as end -> tgt.high as high then DateTimeToTS(end, high);
+}
+
+// FHIR Quantity → CDA PQ: a UCUM code is the unit; a unit outside UCUM goes in a translation's
+// originalText, as the mapping guidance shows.
+group QuantityToPQ(source src : Quantity, target tgt : PQ) {
+  src.value as value -> tgt.value = value;
+  src.code as code where (%src.system = 'http://unitsofmeasure.org') -> tgt.unit = code;
+  src where (system != 'http://unitsofmeasure.org' and (unit.exists() or code.exists())) -> tgt.nullFlavor = 'OTH', tgt.translation as translation then {
+    src.value as value -> translation.value = value;
+    src.code as code -> translation.code = code;
+    src.unit as unit -> translation.originalText as original, original.xmlText = unit;
+  };
+}
+
+group AddressToAD(source src : Address, target tgt : AD) {
+  src.use as use -> tgt.use = translate(use, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-AddressUse', 'code');
+  src.line as line -> tgt.item as item, item.streetAddressLine as part, part.xmlText = line;
+  src.city as city -> tgt.item as item, item.city as part, part.xmlText = city;
+  src.district as district -> tgt.item as item, item.county as part, part.xmlText = district;
+  src.state as state -> tgt.item as item, item.state as part, part.xmlText = state;
+  src.postalCode as code -> tgt.item as item, item.postalCode as part, part.xmlText = code;
+  src.country as country -> tgt.item as item, item.country as part, part.xmlText = country;
+  src.period as period -> tgt.useablePeriod = create('IVL_TS') as p then PeriodToIVLTS(period, p);
+  src where (line.empty() and city.empty() and state.empty() and postalCode.empty() and country.empty() and district.empty() and extension.where(url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason').empty()) -> tgt.nullFlavor = 'NI';
+  src.extension as reason where (url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason') then {
+    reason.value as code -> tgt.nullFlavor = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-DataAbsentReasonNullFlavor', 'code');
+  };
+}
+
+group HumanNameToPN(source src : HumanName, target tgt : PN) {
+  src.use as use -> tgt.use = translate(use, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-NameUse', 'code');
+  src.prefix as prefix -> tgt.item as item, item.prefix as part, part.xmlText = prefix;
+  src.given as given -> tgt.item as item, item.given as part, part.xmlText = given;
+  src.family as family -> tgt.item as item, item.family as part, part.xmlText = family;
+  src.suffix as suffix -> tgt.item as item, item.suffix as part, part.xmlText = suffix;
+  src where (family.empty() and given.empty() and text.exists()) then {
+    src.text as text -> tgt.item as item, item.xmlText = text;
+  };
+  src.period as period -> tgt.validTime as p then PeriodToIVLTS(period, p);
+  src where (family.empty() and given.empty() and text.empty() and extension.where(url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason').empty()) -> tgt.nullFlavor = 'NI';
+  src.extension as reason where (url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason') then {
+    reason.value as code -> tgt.nullFlavor = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-DataAbsentReasonNullFlavor', 'code');
+  };
+}
+
+// FHIR ContactPoint → CDA telecom: the system gives the URL scheme. The use goes through
+// FC-TelecomUse, whose home is HP or HV: home phones are HP (primary home).
+group ContactPointToTEL(source src : ContactPoint, target tgt : TEL) {
+  src.value as value where (%src.system = 'phone' or %src.system = 'sms' or %src.system = 'pager') -> tgt.value = evaluate(value, 'tel:' + $this.replace(' ', ''));
+  src.value as value where (%src.system = 'fax') -> tgt.value = evaluate(value, 'fax:' + $this.replace(' ', ''));
+  src.value as value where (%src.system = 'email') -> tgt.value = evaluate(value, 'mailto:' + $this);
+  src.value as value where (%src.system = 'url' or %src.system = 'other' or %src.system.empty()) -> tgt.value = value;
+  src where (iif(value.hasValue(), false, true) and extension.where(url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason').empty()) -> tgt.nullFlavor = 'NI';
+  src.extension as reason where (url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason') then {
+    reason.value as code -> tgt.nullFlavor = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-DataAbsentReasonNullFlavor', 'code');
+  };
+  src.use as use where (use = 'home') -> tgt.use = 'HP';
+  src.use as use where (use != 'home') -> tgt.use = translate(use, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-TelecomUse', 'code');
+}
+
+// A FHIR date or time as a CDA timestamp: its value, or without one (a data-absent-reason) a
+// null flavor (FC-DataAbsentReasonNullFlavor; UNK when no reason is given).
+group DateTimeToTS(source d, target ts : TS) {
+  d as v where (v.hasValue()) -> ts.value = v;
+  d where (hasValue().not()) then {
+    d.extension as reason where (url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason') then {
+      reason.value as code -> ts.nullFlavor = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-DataAbsentReasonNullFlavor', 'code');
+    };
+    d where (extension.where(url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason').empty()) -> ts.nullFlavor = 'UNK';
+  };
+}

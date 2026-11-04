@@ -1,0 +1,205 @@
+{
+  "resourceType": "ConceptMap",
+  "id": "CF-TelecomUse",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg",
+      "valueCode": "cgp"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm",
+      "valueInteger": 2,
+      "_valueInteger": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status",
+      "valueCode": "trial-use",
+      "_valueCode": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    }
+  ],
+  "url": "http://hl7.org/fhir/us/ccda/ConceptMap/CF-TelecomUse",
+  "version": "2.0.0",
+  "name": "CCDAtoFHIRTelecomUse",
+  "title": "C-CDA to FHIR Telecom Use",
+  "status": "active",
+  "experimental": false,
+  "date": "2026-06-05T23:32:24+10:00",
+  "publisher": "HL7 International / Cross-Group Projects",
+  "contact": [
+    {
+      "name": "HL7 International / Cross-Group Projects",
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://www.hl7.org/Special/committees/cgp"
+        }
+      ]
+    }
+  ],
+  "description": "C-CDA to FHIR Telecom Use",
+  "jurisdiction": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US"
+        }
+      ]
+    }
+  ],
+  "sourceUri": "http://terminology.hl7.org/ValueSet/v3-TelecommunicationAddressUse",
+  "targetUri": "http://hl7.org/fhir/ValueSet/contact-point-use",
+  "group": [
+    {
+      "source": "http://terminology.hl7.org/CodeSystem/v3-AddressUse",
+      "sourceVersion": "4.0.0",
+      "target": "http://hl7.org/fhir/contact-point-use",
+      "element": [
+        {
+          "code": "AS",
+          "display": "answering service",
+          "target": [
+            {
+              "code": "work",
+              "display": "Work",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "BAD",
+          "display": "bad address",
+          "target": [
+            {
+              "code": "old",
+              "display": "Old",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "DIR",
+          "display": "direct",
+          "target": [
+            {
+              "code": "work",
+              "display": "Work",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "EC",
+          "display": "emergency contact",
+          "target": [
+            {
+              "equivalence": "unmatched"
+            }
+          ]
+        },
+        {
+          "code": "H",
+          "display": "home address",
+          "target": [
+            {
+              "code": "home",
+              "display": "Home",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "HP",
+          "display": "primary home",
+          "target": [
+            {
+              "code": "home",
+              "display": "Home",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "HV",
+          "display": "vacation home",
+          "target": [
+            {
+              "code": "home",
+              "display": "Home",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "MC",
+          "display": "mobile contact",
+          "target": [
+            {
+              "code": "mobile",
+              "display": "Mobile",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "PG",
+          "display": "pager",
+          "target": [
+            {
+              "code": "mobile",
+              "display": "Mobile",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "PUB",
+          "display": "public",
+          "target": [
+            {
+              "code": "work",
+              "display": "Work",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "TMP",
+          "display": "temporary address",
+          "target": [
+            {
+              "code": "temp",
+              "display": "Temp",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "WP",
+          "display": "work place",
+          "target": [
+            {
+              "code": "work",
+              "display": "Work",
+              "equivalence": "equivalent"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+[package]
+name = "ccda-fhir"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+authors = ["OctoFHIR Team"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/octofhir/ccda-fhir"
+homepage = "https://github.com/octofhir/ccda-fhir"
+description = "C-CDA to FHIR R4 and back, on FHIR Mapping Language maps over the HL7 CDA logical model"
+keywords = ["fhir", "cda", "ccda", "fml", "healthcare"]
+categories = ["encoding", "command-line-utilities"]
+exclude = [".github/", "corpus/", "reports/", "scripts/"]
+
+[[bin]]
+name = "ccda-fhir"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = ["cli"]
+# The `ccda-fhir` command line.
+cli = ["dep:clap", "tokio/rt-multi-thread"]
+
+[dependencies]
+fml-syntax = { version = "0.2.3" }
+fml-model = { version = "0.2.3" }
+fml-check = { version = "0.2.3", features = ["fhirschema"] }
+fml-engine = { version = "0.2.3", features = ["fhirpath"] }
+fml-xml = { version = "0.2.3" }
+octofhir-fhirschema = { version = "0.3.37", default-features = false }
+octofhir-fhirpath = { version = "0.5.6", default-features = false }
+octofhir-fhir-model = { version = "0.1.19", default-features = false }
+roxmltree = "0.21"
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["rt"] }
+clap = { version = "4.6", features = ["derive"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "sync"] }
+
+# FHIRPath runs over thousands of elements per document; optimise dependencies in debug builds.
+[profile.dev.package."*"]
+opt-level = 2

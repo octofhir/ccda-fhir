@@ -1,0 +1,137 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-allergies-to-fhir'
+/// name = 'CdaAllergiesToFhir'
+/// title = 'C-CDA allergies to US Core AllergyIntolerance'
+/// status = 'active'
+/// description = 'Allergy Concern acts to US Core 6.1.0 AllergyIntolerance, after "Allergies CDA → FHIR" of C-CDA on FHIR 2.0.0: each Allergy Intolerance observation is one AllergyIntolerance.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-allergies-to-fhir" = "CdaAllergiesToFhir"
+
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AllergiesAndIntolerancesSection" alias AllergiesSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AllergyConcernAct" alias AllergyConcernAct as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AllergyIntoleranceObservation" alias AllergyObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AllergyStatusObservation" alias AllergyStatusObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ReactionObservation" alias ReactionObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SeverityObservation" alias SeverityObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CriticalityObservation" alias CriticalityObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Author" alias Author as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as source
+uses "http://hl7.org/fhir/StructureDefinition/AllergyIntolerance" alias AllergyIntolerance as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group AllergiesSection(source section : AllergiesSection, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.act : AllergyConcernAct as act then {
+      act.entryRelationship as relationship then {
+        relationship.observation : AllergyObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('AllergyIntolerance') as allergy, uuid() as id, allergy.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), allergy.patient as patient, patient.reference = append('urn:uuid:', patientId) then AllergyIntolerance(act, observation, allergy, bundle);
+      };
+    };
+  };
+}
+
+group AllergyIntolerance(source act : AllergyConcernAct, source observation : AllergyObservation, target allergy : AllergyIntolerance, target bundle : Bundle) {
+  observation -> allergy.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-allergyintolerance';
+  observation.id as id -> allergy.identifier as i then IIToIdentifier(id, i);
+  // The status observation gives the clinical status; without one, the concern's statusCode.
+  observation.entryRelationship as relationship then {
+    relationship.observation : AllergyStatusObservation as status then {
+      status.value as value then {
+        value.code as code -> allergy.clinicalStatus as cs, cs.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', coding.code = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-AllergyStatus', 'code');
+      };
+    };
+  };
+  act.statusCode as statusCode where (%observation.entryRelationship.observation.where(hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.28')).empty()) then {
+    statusCode.code as code where (code in ('active' | 'completed' | 'suspended')) -> allergy.clinicalStatus as cs, cs.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', coding.code = evaluate(code, iif($this = 'active', 'active', iif($this = 'suspended', 'inactive', 'resolved')));
+  };
+  observation.effectiveTime as time then {
+    time.low as low where (value.exists()) -> allergy.onset = create('dateTime') as onset then TSToDateTime(low, onset);
+    time.value as value where (%time.low.empty()) -> allergy.onset = create('dateTime') as onset then TSToDateTime(time, onset);
+    time.high as high where (value.exists()) -> allergy.extension as ext, ext.url = 'http://hl7.org/fhir/StructureDefinition/allergyintolerance-abatement', ext.value = create('dateTime') as abatement then TSToDateTime(high, abatement);
+  };
+  // value: the kind of reaction (allergy or intolerance) and what it is to (food, medication, …).
+  observation.value as value then {
+    value.code as code -> allergy.type = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-AllergyIntoleranceType', 'code');
+    value.code as code -> allergy.category = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-AllergyIntoleranceCategory', 'code');
+  };
+  // The substance. A negated observation is a refutation: without a particular substance (a
+  // null flavor, or the class "substance", "drug", "food") it is "no known allergy" of the kind
+  // its value says; with one, the substance is in the substanceExposureRisk extension, as the
+  // mapping table says (such a resource has no code, so it is not US Core).
+  observation where (negationInd.exists().not() or negationInd = false) then {
+    observation.participant as participant then {
+      participant.participantRole as role then {
+        role.playingEntity as entity then {
+          entity.code as code where (nullFlavor.empty() or translation.exists() or originalText.exists()) -> allergy.code as cc then CDToCodeableConcept(code, cc);
+        };
+      };
+    };
+  };
+  observation where (negationInd = true and (participant.participantRole.playingEntity.code.where(nullFlavor.exists() or code in ('105590001' | '410942007' | '255620007')).exists() or participant.participantRole.playingEntity.code.empty())) then {
+    observation.value as value then {
+      value.code as code -> allergy.code as cc, cc.coding as coding, coding.system = 'http://snomed.info/sct', coding.code = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NoKnownAllergies', 'code'), coding.display = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NoKnownAllergies', 'display');
+    };
+    observation -> allergy.verificationStatus as vs, vs.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', coding.code = 'confirmed';
+  };
+  observation where (negationInd = true and participant.participantRole.playingEntity.code.where(nullFlavor.empty() and (code in ('105590001' | '410942007' | '255620007')).not()).exists()) then {
+    observation.participant as participant then {
+      participant.participantRole as role then {
+        role.playingEntity as entity then {
+          entity.code as code -> allergy.extension as risk, risk.url = 'http://hl7.org/fhir/StructureDefinition/allergyintolerance-substanceExposureRisk' then {
+            code -> risk.extension as substance, substance.url = 'substance', substance.value = create('CodeableConcept') as cc then CDToCodeableConcept(code, cc);
+            code -> risk.extension as exposure, exposure.url = 'exposureRisk', exposure.value = create('CodeableConcept') as cc, cc.coding as coding, coding.system = 'http://hl7.org/fhir/allerg-intol-substance-exp-risk', coding.code = 'no-known-reaction-risk';
+          };
+        };
+      };
+    };
+  };
+  // The last author records it; the earliest author time is when.
+  observation.author last as author then Recorder(author, allergy, bundle);
+  observation where (author.empty()) then {
+    act.author last as author then Recorder(author, allergy, bundle);
+  };
+  observation.author first as author then {
+    author.time as time -> allergy.recordedDate = create('dateTime') as date then TSToDateTime(time, date);
+  };
+  observation.entryRelationship as relationship then {
+    relationship.observation : ReactionObservation as reaction -> allergy.reaction as allergyReaction then Reaction(reaction, observation, allergyReaction);
+    relationship.observation : CriticalityObservation as criticality then {
+      criticality.value as value then {
+        value.code as code -> allergy.criticality = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-Criticality', 'code');
+      };
+    };
+    relationship.act : CommentActivity as comment then {
+      comment.text as text then {
+        text.xmlText as t where (t.trim().length() > 0) -> allergy.note as note, note.text = evaluate(t, $this.trim());
+      };
+    };
+  };
+}
+
+// A reaction: what it shows as, and its severity (or the allergy's, when the reaction has none).
+group Reaction(source reaction : ReactionObservation, source observation : AllergyObservation, target allergyReaction) {
+  reaction.value as value -> allergyReaction.manifestation as manifestation then CDToCodeableConcept(value, manifestation);
+  reaction.effectiveTime as time then {
+    time.low as low where (value.exists()) -> allergyReaction.onset = create('dateTime') as onset then TSToDateTime(low, onset);
+  };
+  reaction.entryRelationship as relationship then {
+    relationship.observation : SeverityObservation as severity then Severity(severity, allergyReaction);
+  };
+  reaction where (entryRelationship.observation.where(hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.8')).empty()) then {
+    observation.entryRelationship as relationship then {
+      relationship.observation : SeverityObservation as severity then Severity(severity, allergyReaction);
+    };
+  };
+}
+
+group Severity(source severity : SeverityObservation, target allergyReaction) {
+  severity.value as value then {
+    value.code as code -> allergyReaction.severity = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-Severity', 'code');
+  };
+}
+
+group Recorder(source author : Author, target allergy : AllergyIntolerance, target bundle : Bundle) {
+  author where (assignedAuthor.assignedPerson.exists()) -> allergy.recorder as ref then AuthorReference(author, ref, bundle);
+}

@@ -1,0 +1,144 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir'
+/// name = 'CdaResultsToFhir'
+/// title = 'C-CDA results to US Core DiagnosticReport and Observation'
+/// status = 'active'
+/// description = 'Result Organizers to US Core 6.1.0 DiagnosticReport (Lab) and Result Observations to Laboratory Result Observation, after "Results CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir" = "CdaResultsToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PQ" alias PQ as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-PQ" alias IVL_PQ as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CV" alias CV as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CO" alias CO as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CS" alias CS as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ST" alias ST as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ED" alias ED as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/INT" alias INT as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/REAL" alias REAL as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/BL" alias BL as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/TS" alias TS as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ResultOrganizer" alias ResultOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ResultObservation" alias ResultObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias DiagnosticReport as target
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group ResultsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.organizer : ResultOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('DiagnosticReport') as report, uuid() as id, report.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), report.subject as subject, subject.reference = append('urn:uuid:', patientId) then DiagnosticReport(organizer, report, bundle, patientId);
+  };
+}
+
+group DiagnosticReport(source organizer : ResultOrganizer, target report : DiagnosticReport, target bundle : Bundle, source patientId : string) {
+  organizer -> report.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-diagnosticreport-lab';
+  organizer.id as id -> report.identifier as i then IIToIdentifier(id, i);
+  organizer.statusCode as status then {
+    status.code as code -> report.status = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-ResultReportStatus', 'code');
+  };
+  organizer where (statusCode.code.empty()) -> report.status = 'unknown';
+  organizer -> report.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v2-0074', coding.code = 'LAB';
+  organizer.code as code -> report.code as cc then CDToCodeableConcept(code, cc);
+  // effectiveTime: a point, or a period; low and high the same are a point.
+  // Without an effectiveTime of its own, the organizer spans its observations' times.
+  organizer where (effectiveTime.where(value.exists() or low.value.exists()).empty() and component.observation.effectiveTime.where(value.exists() or low.value.exists()).exists()) -> report.effective = create('Period') as period then {
+    organizer -> period.start = create('dateTime') as start, start.value = evaluate(organizer, component.observation.effectiveTime.select(iif(value.exists(), value, low.value)).toString().where(matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$')).select(iif(length() > 10 and contains('T') and matches('([+-][0-9]{2}:[0-9]{2}|Z)$'), $this, substring(0, 10))).first());
+    organizer -> period.end = create('dateTime') as end, end.value = evaluate(organizer, component.observation.effectiveTime.select(iif(value.exists(), value, low.value)).toString().where(matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$')).select(iif(length() > 10 and contains('T') and matches('([+-][0-9]{2}:[0-9]{2}|Z)$'), $this, substring(0, 10))).last());
+  };
+  organizer.effectiveTime as time then {
+    time.value as v -> report.effective = create('dateTime') as date then TSToDateTime(time, date);
+    time where (value.empty() and low.value.exists() and (high.empty() or high.value = low.value)) then {
+      time.low as low -> report.effective = create('dateTime') as date then TSToDateTime(low, date);
+    };
+    time where (value.empty() and low.value.exists() and high.value.exists() and high.value != low.value) -> report.effective = create('Period') as period then IVLTSToPeriod(time, period);
+  };
+  // issued: the organizer's author time, when it is precise enough for an instant.
+  organizer.author first as author then {
+    author.time as time where (value.length() > 18) -> report.issued = create('instant') as issued then TSToDateTime(time, issued);
+  };
+  organizer.component as component then {
+    component.observation : ResultObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as result, uuid() as id, result.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), report.result as ref, ref.reference = append('urn:uuid:', id), result.subject as subject, subject.reference = append('urn:uuid:', patientId) then ResultObservation(observation, result, bundle);
+  };
+}
+
+group ResultObservation(source observation : ResultObservation, target result : Observation, target bundle : Bundle) {
+  observation -> result.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab';
+  observation -> result.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'laboratory';
+  observation.statusCode as status then {
+    status.code as code -> result.status = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-ResultStatus', 'code');
+  };
+  observation where (statusCode.code.empty()) -> result.status = 'unknown';
+  observation then ObservationContent(observation, result, bundle);
+}
+
+// What result and vital sign observations share: identifier, code, time, value, interpretation,
+// method, site, reference range, author, comments.
+group ObservationContent(source observation : CdaObservation, target result : Observation, target bundle : Bundle) {
+  observation.id as id -> result.identifier as i then IIToIdentifier(id, i);
+  observation.code as code -> result.code as cc then CDToCodeableConcept(code, cc);
+  observation.effectiveTime as time then {
+    time.value as v -> result.effective = create('dateTime') as date then TSToDateTime(time, date);
+    time where (value.empty() and low.value.exists() and (high.empty() or high.value = low.value)) then {
+      time.low as low -> result.effective = create('dateTime') as date then TSToDateTime(low, date);
+    };
+    time where (value.empty() and low.value.exists() and high.value.exists() and high.value != low.value) -> result.effective = create('Period') as period then IVLTSToPeriod(time, period);
+  };
+  observation.value : PQ as value -> result.value = create('Quantity') as q then PQToQuantity(value, q);
+  observation.value : IVL_PQ as value -> result.value = create('Range') as range then {
+    value.low as low -> range.low as q then PQToQuantity(low, q);
+    value.high as high -> range.high as q then PQToQuantity(high, q);
+  };
+  observation.value : CD as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CE as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CV as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CO as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CS as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : ST as value then {
+    value.xmlText as t where (t.trim().length() > 0) -> result.value = evaluate(t, $this.trim());
+  };
+  observation.value : ED as value then {
+    value.xmlText as t where (t.trim().length() > 0) -> result.value = evaluate(t, $this.trim());
+  };
+  observation.value : INT as value then {
+    value.value as v -> result.value = create('integer') as i, i.value = v;
+  };
+  observation.value : REAL as value then {
+    value.value as v -> result.value = create('Quantity') as q, q.value = v;
+  };
+  observation.value : BL as value then {
+    value.value as v -> result.value = create('boolean') as b, b.value = v;
+  };
+  observation.value : TS as value -> result.value = create('dateTime') as date then TSToDateTime(value, date);
+  observation.value as value then {
+    value.nullFlavor as nf where (%value.code.empty() and %value.value.empty() and %value.xmlText.empty() and %value.translation.empty() and %value.originalText.empty() and %value.low.empty() and %value.high.empty() and %value.item.empty()) -> result.dataAbsentReason as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/data-absent-reason', coding.code = translate(nf, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NullFlavorDataAbsentReason', 'code');
+  };
+  observation.interpretationCode as code -> result.interpretation as cc then CDToCodeableConcept(code, cc);
+  observation.methodCode first as code -> result.method as cc then CDToCodeableConcept(code, cc);
+  observation.targetSiteCode first as code -> result.bodySite as cc then CDToCodeableConcept(code, cc);
+  // Reference ranges: the normal one (interpretation N, or none given).
+  observation.referenceRange as range then {
+    range.observationRange as observationRange where (interpretationCode.empty() or interpretationCode.code = 'N') -> result.referenceRange as fhirRange then {
+      observationRange.value : IVL_PQ as value then {
+        value.low as low -> fhirRange.low as q then PQToQuantity(low, q);
+        value.high as high -> fhirRange.high as q then PQToQuantity(high, q);
+      };
+      observationRange.value : ST as value then {
+        value.xmlText as t where (t.trim().length() > 0) -> fhirRange.text = evaluate(t, $this.trim());
+      };
+      observationRange.text as text where (%observationRange.value.empty()) then {
+        text.xmlText as t where (t.trim().length() > 0) -> fhirRange.text = evaluate(t, $this.trim());
+      };
+    };
+  };
+  observation.author last as author -> result.performer as ref then AuthorReference(author, ref, bundle);
+  observation.entryRelationship as relationship then {
+    relationship.act : CommentActivity as comment -> result.note as note then CommentToAnnotation(comment, note);
+  };
+}

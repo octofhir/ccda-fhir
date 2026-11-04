@@ -1,0 +1,209 @@
+{
+  "resourceType": "ConceptMap",
+  "id": "CF-NullFlavorDataAbsentReason",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg",
+      "valueCode": "cgp"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm",
+      "valueInteger": 2,
+      "_valueInteger": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status",
+      "valueCode": "trial-use",
+      "_valueCode": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    }
+  ],
+  "url": "http://hl7.org/fhir/us/ccda/ConceptMap/CF-NullFlavorDataAbsentReason",
+  "version": "2.0.0",
+  "name": "CCDAtoFHIRNullFlavorDataAbsentReason",
+  "title": "C-CDA NullFlavor to FHIR Data Absent Reason",
+  "status": "active",
+  "experimental": false,
+  "date": "2026-06-05T23:32:24+10:00",
+  "publisher": "HL7 International / Cross-Group Projects",
+  "contact": [
+    {
+      "name": "HL7 International / Cross-Group Projects",
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://www.hl7.org/Special/committees/cgp"
+        }
+      ]
+    }
+  ],
+  "description": "C-CDA NullFlavor to FHIR Data Absent Reason. Adapted from https://hl7.org/fhir/R4/cm-data-absent-reason-v3.html but several key changes have been made. Note that this prior concept map (from R4) is no longer included in current FHIR build.",
+  "jurisdiction": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US"
+        }
+      ]
+    }
+  ],
+  "sourceUri": "http://terminology.hl7.org/ValueSet/v3-NullFlavor",
+  "targetUri": "http://hl7.org/fhir/ValueSet/data-absent-reason",
+  "group": [
+    {
+      "source": "http://terminology.hl7.org/CodeSystem/v3-NullFlavor",
+      "sourceVersion": "4.0.0",
+      "target": "http://terminology.hl7.org/CodeSystem/data-absent-reason",
+      "targetVersion": "1.0.0",
+      "element": [
+        {
+          "code": "NI",
+          "display": "NoInformation",
+          "target": [
+            {
+              "code": "unknown",
+              "display": "Unknown",
+              "equivalence": "inexact",
+              "comment": "When the item is not required, US CORE guidance is to omit the element and not include data-absent-reason. When the item is required, US CORE guidance is to use unknown as the broadest concept"
+            }
+          ]
+        },
+        {
+          "code": "OTH",
+          "display": "other",
+          "target": [
+            {
+              "code": "unsupported",
+              "display": "Unsupported",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "NINF",
+          "display": "negative infinity",
+          "target": [
+            {
+              "code": "negative-infinity",
+              "display": "Negative Infinity (NINF)",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "PINF",
+          "display": "positive infinity",
+          "target": [
+            {
+              "code": "positive-infinity",
+              "display": "Positive Infinity (PINF)",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "MSK",
+          "display": "masked",
+          "target": [
+            {
+              "code": "masked",
+              "display": "Masked",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "NA",
+          "display": "not applicable",
+          "target": [
+            {
+              "code": "not-applicable",
+              "display": "Not Applicable",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "UNK",
+          "display": "unknown",
+          "target": [
+            {
+              "code": "unknown",
+              "display": "Unknown",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "ASKU",
+          "display": "asked but unknown",
+          "target": [
+            {
+              "code": "asked-unknown",
+              "display": "Asked But Unknown",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "NAV",
+          "display": "temporarily unavailable",
+          "target": [
+            {
+              "code": "temp-unknown",
+              "display": "Temporarily Unknown",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "NASK",
+          "display": "not asked",
+          "target": [
+            {
+              "code": "not-asked",
+              "display": "Not Asked",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "TRC",
+          "display": "trace",
+          "target": [
+            {
+              "code": "unsupported",
+              "display": "Unsupported",
+              "equivalence": "wider"
+            }
+          ]
+        },
+        {
+          "code": "NP",
+          "display": "not present",
+          "target": [
+            {
+              "code": "unknown",
+              "display": "Unknown",
+              "equivalence": "wider"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

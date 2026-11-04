@@ -1,0 +1,149 @@
+{
+  "resourceType": "ConceptMap",
+  "id": "CF-TelecomType",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg",
+      "valueCode": "cgp"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm",
+      "valueInteger": 2,
+      "_valueInteger": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status",
+      "valueCode": "trial-use",
+      "_valueCode": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    }
+  ],
+  "url": "http://hl7.org/fhir/us/ccda/ConceptMap/CF-TelecomType",
+  "version": "2.0.0",
+  "name": "CCDAtoFHIRTelecomType",
+  "title": "C-CDA to FHIR Telecom Type",
+  "status": "active",
+  "experimental": false,
+  "date": "2026-06-05T23:32:24+10:00",
+  "publisher": "HL7 International / Cross-Group Projects",
+  "contact": [
+    {
+      "name": "HL7 International / Cross-Group Projects",
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://www.hl7.org/Special/committees/cgp"
+        }
+      ]
+    }
+  ],
+  "description": "C-CDA to FHIR Telecom Type. In CDA, these are prefixes inside the value attribute. ",
+  "jurisdiction": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US"
+        }
+      ]
+    }
+  ],
+  "sourceUri": "http://terminology.hl7.org/ValueSet/v3-URLScheme",
+  "targetUri": "http://hl7.org/fhir/ValueSet/contact-point-system",
+  "group": [
+    {
+      "source": "http://terminology.hl7.org/CodeSystem/v3-URLScheme",
+      "sourceVersion": "4.0.0",
+      "target": "http://hl7.org/fhir/contact-point-system",
+      "element": [
+        {
+          "code": "mailto",
+          "display": "Mailto",
+          "target": [
+            {
+              "code": "email",
+              "display": "Email",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "http",
+          "display": "HTTP",
+          "target": [
+            {
+              "code": "url",
+              "display": "URL",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "tel",
+          "display": "Telephone",
+          "target": [
+            {
+              "code": "phone",
+              "display": "Phone",
+              "equivalence": "narrower",
+              "comment": "Use phone when the @use is not PG (pager)"
+            },
+            {
+              "code": "pager",
+              "display": "Pager",
+              "equivalence": "narrower",
+              "comment": "Use pager when the @use is PG (Pager)"
+            }
+          ]
+        },
+        {
+          "code": "fax",
+          "display": "Fax",
+          "target": [
+            {
+              "code": "fax",
+              "display": "Fax",
+              "equivalence": "equivalent",
+              "comment": "While mappings are provided for both fax and x-text-fax, the latter is the preferred prefix in CDA"
+            }
+          ]
+        },
+        {
+          "code": "x-text-fax",
+          "display": "Fax",
+          "target": [
+            {
+              "code": "fax",
+              "display": "Fax",
+              "equivalence": "equivalent",
+              "comment": "While mappings are provided for both fax and x-text-fax, the latter is the preferred prefix in CDA"
+            }
+          ]
+        },
+        {
+          "target": [
+            {
+              "code": "sms",
+              "display": "SMS",
+              "equivalence": "narrower",
+              "comment": "While sms: is not technically designated in CDA, if it's included as such, we recommend mapping to sms in FHIR"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

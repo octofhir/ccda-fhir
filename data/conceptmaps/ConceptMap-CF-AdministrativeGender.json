@@ -1,0 +1,113 @@
+{
+  "resourceType": "ConceptMap",
+  "id": "CF-AdministrativeGender",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg",
+      "valueCode": "cgp"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm",
+      "valueInteger": 2,
+      "_valueInteger": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status",
+      "valueCode": "trial-use",
+      "_valueCode": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    }
+  ],
+  "url": "http://hl7.org/fhir/us/ccda/ConceptMap/CF-AdministrativeGender",
+  "version": "2.0.0",
+  "name": "CCDAtoFHIRAdminsitrativeGender",
+  "title": "C-CDA to FHIR Administrative Gender",
+  "status": "active",
+  "experimental": false,
+  "date": "2026-06-05T23:32:24+10:00",
+  "publisher": "HL7 International / Cross-Group Projects",
+  "contact": [
+    {
+      "name": "HL7 International / Cross-Group Projects",
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://www.hl7.org/Special/committees/cgp"
+        }
+      ]
+    }
+  ],
+  "description": "C-CDA to FHIR Administrative Gender",
+  "jurisdiction": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US"
+        }
+      ]
+    }
+  ],
+  "sourceUri": "http://cts.nlm.nih.gov/fhir/ValueSet/2.16.840.1.113883.1.11.1",
+  "targetUri": "http://hl7.org/fhir/ValueSet/administrative-gender",
+  "group": [
+    {
+      "source": "http://terminology.hl7.org/CodeSystem/v3-AdministrativeGender",
+      "sourceVersion": "4.0.0",
+      "target": "http://hl7.org/fhir/administrative-gender",
+      "element": [
+        {
+          "code": "M",
+          "display": "Male",
+          "target": [
+            {
+              "code": "male",
+              "display": "Male",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "F",
+          "display": "Female",
+          "target": [
+            {
+              "code": "female",
+              "display": "Female",
+              "equivalence": "equivalent"
+            }
+          ]
+        },
+        {
+          "code": "UN",
+          "display": "Undifferentiated",
+          "target": [
+            {
+              "code": "other",
+              "display": "Other",
+              "equivalence": "wider"
+            }
+          ]
+        }
+      ],
+      "unmapped": {
+        "mode": "fixed",
+        "code": "unknown",
+        "display": "Unknown"
+      }
+    }
+  ]
+}

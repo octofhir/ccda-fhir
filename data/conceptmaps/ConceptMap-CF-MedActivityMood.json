@@ -1,0 +1,99 @@
+{
+  "resourceType": "ConceptMap",
+  "id": "CF-MedActivityMood",
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-wg",
+      "valueCode": "cgp"
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm",
+      "valueInteger": 2,
+      "_valueInteger": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    },
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-standards-status",
+      "valueCode": "trial-use",
+      "_valueCode": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/structuredefinition-conformance-derivedFrom",
+            "valueCanonical": "http://hl7.org/fhir/us/ccda/ImplementationGuide/hl7.fhir.us.ccda"
+          }
+        ]
+      }
+    }
+  ],
+  "url": "http://hl7.org/fhir/us/ccda/ConceptMap/CF-MedActivityMood",
+  "version": "2.0.0",
+  "name": "CCDAtoFHIRMedActivityMood",
+  "title": "CCDA Medication Activity Mood to FHIR MedicationRequest.intent",
+  "status": "active",
+  "experimental": false,
+  "date": "2026-06-05T23:32:24+10:00",
+  "publisher": "HL7 International / Cross-Group Projects",
+  "contact": [
+    {
+      "name": "HL7 International / Cross-Group Projects",
+      "telecom": [
+        {
+          "system": "url",
+          "value": "http://www.hl7.org/Special/committees/cgp"
+        }
+      ]
+    }
+  ],
+  "description": "CCDA Medication Activity Mood to FHIR MedicationRequest.intent",
+  "jurisdiction": [
+    {
+      "coding": [
+        {
+          "system": "urn:iso:std:iso:3166",
+          "code": "US"
+        }
+      ]
+    }
+  ],
+  "sourceUri": "http://cts.nlm.nih.gov/fhir/ValueSet/2.16.840.1.113883.11.20.9.18",
+  "targetUri": "http://hl7.org/fhir/ValueSet/medicationrequest-intent",
+  "group": [
+    {
+      "source": "http://terminology.hl7.org/CodeSystem/v3-ActMood",
+      "sourceVersion": "4.0.0",
+      "target": "http://hl7.org/fhir/CodeSystem/medicationrequest-intent",
+      "element": [
+        {
+          "code": "EVN",
+          "display": "event (occurrence)",
+          "target": [
+            {
+              "code": "plan",
+              "display": "plan",
+              "equivalence": "inexact",
+              "comment": "CDA mood codes are more general than FHIR intent codes, and there may be special cases where this inexact map does not work."
+            }
+          ]
+        },
+        {
+          "code": "INT",
+          "display": "intent",
+          "target": [
+            {
+              "code": "order",
+              "display": "order",
+              "equivalence": "inexact",
+              "comment": "CDA mood codes are more general than FHIR intent codes, and there may be special cases where this inexact map does not work."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
