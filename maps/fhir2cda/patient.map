@@ -37,6 +37,18 @@ group PatientToCdaPatient(source patient : Patient, target p : CdaPatient) {
   patient.birthDate as date -> p.birthTime as time then DateTimeToTS(date, time);
   patient.deceased : boolean as deceased -> p.sdtcDeceasedInd as ind then DateTimeToTS(deceased, ind);
   patient.deceased : dateTime as deceased -> p.sdtcDeceasedInd as ind, ind.value = true, p.sdtcDeceasedTime as time then DateTimeToTS(deceased, time);
+  // A guardian: a contact whose relationship is GUARD.
+  patient.contact as contact where (relationship.coding.where(code = 'GUARD').exists()) -> p.guardian as guardian then {
+    contact.relationship as relationship where (coding.where(code != 'GUARD').exists()) -> guardian.code = create('CE') as c then {
+      relationship.coding as coding where (code != 'GUARD') then CodingToCD(coding, c);
+    };
+    contact.address as address -> guardian.addr as addr then AddressToAD(address, addr);
+    contact.telecom as telecom -> guardian.telecom as tel then ContactPointToTEL(telecom, tel);
+    contact.name as name -> guardian.guardianPerson as person, person.name as pn then HumanNameToPN(name, pn);
+  };
+  patient.extension as ext where (url = 'http://hl7.org/fhir/StructureDefinition/patient-birthPlace') then {
+    ext.value : Address as address -> p.birthplace as birthplace, birthplace.place as place, place.addr as addr then AddressToAD(address, addr);
+  };
   patient.maritalStatus as status -> p.maritalStatusCode = create('CE') as code then CodeableConceptToCD(status, code);
   patient.extension as ext where (url = 'http://hl7.org/fhir/StructureDefinition/patient-religion') then {
     ext.value : CodeableConcept as religion -> p.religiousAffiliationCode = create('CE') as code then CodeableConceptToCD(religion, code);

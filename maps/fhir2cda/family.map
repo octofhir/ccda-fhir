@@ -1,0 +1,63 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-family-to-cda'
+/// name = 'FhirFamilyToCda'
+/// title = 'FamilyMemberHistory to C-CDA family history'
+/// status = 'active'
+/// description = 'FamilyMemberHistory to Family History Organizer (C-CDA 5.0.0) with a Family History Observation per condition, its Age Observation and Family History Death Observation: the inverse of cda-family-to-fhir.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-family-to-cda" = "FhirFamilyToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/FamilyMemberHistory" alias FamilyMemberHistory as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+
+group FamilyMemberToOrganizer(source member : FamilyMemberHistory, source bundle : Bundle, target organizer : Organizer) {
+  member -> organizer.classCode = 'CLUSTER', organizer.moodCode = 'EVN';
+  member -> organizer.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.45', template.extension = '2026-05-01';
+  member.identifier as identifier -> organizer.id as id then IdentifierToII(identifier, id);
+  member where (identifier.empty()) -> uuid() as u, organizer.id as id, id.root = evaluate(u, $this.upper());
+  member -> organizer.statusCode as sc, sc.code = 'completed';
+  member -> organizer.subject as subject, subject.relatedSubject as related, related.classCode = 'PRS' then {
+    member.relationship as relationship where (coding.exists()) -> related.code = create('CE') as c then CodeableConceptToCD(relationship, c);
+    member where (relationship.coding.empty()) -> related.code as c, c.nullFlavor = 'UNK';
+    member -> related.subject as person then {
+      member.name as name -> person.name as pn, pn.item as item, item.xmlText = name;
+      member.sex as sex then {
+        sex.coding first as coding where (code in ('male' | 'female')) -> person.administrativeGenderCode as g, g.code = evaluate(coding, iif(code = 'male', 'M', 'F')), g.codeSystem = '2.16.840.1.113883.5.1';
+      };
+      member where (sex.coding.where(code in ('male' | 'female')).empty()) -> person.administrativeGenderCode as g, g.nullFlavor = 'UNK';
+      member.born : date as born -> person.birthTime as time then DateTimeToTS(born, time);
+      member.deceased : boolean as deceased where ($this = true) -> person.sdtcDeceasedInd as ind, ind.value = true;
+      member.deceased : date as date -> person.sdtcDeceasedInd as ind, ind.value = true, person.sdtcDeceasedTime as time then DateTimeToTS(date, time);
+    };
+  };
+  member.condition as condition -> organizer.component as component, component.observation as observation then FamilyConditionToObservation(condition, observation);
+}
+
+group FamilyConditionToObservation(source condition, target observation : CdaObservation) {
+  condition -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+  condition -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.46', template.extension = '2015-08-01';
+  condition -> uuid() as u, observation.id as id, id.root = evaluate(u, $this.upper());
+  condition -> observation.code as code, code.code = '64572001', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Disease', code.translation as loinc, loinc.code = '75315-2', loinc.codeSystem = '2.16.840.1.113883.6.1', loinc.displayName = 'Condition Family member';
+  condition -> observation.statusCode as sc, sc.code = 'completed';
+  condition.onset : Period as onset -> observation.effectiveTime as time then PeriodToIVLTS(onset, time);
+  condition.code as conditionCode -> observation.value = create('CD') as value then CodeableConceptToCD(conditionCode, value);
+  condition.onset : Age as age -> observation.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.observation as ageObservation then {
+    age -> ageObservation.classCode = 'OBS', ageObservation.moodCode = 'EVN';
+    age -> ageObservation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.31';
+    age -> ageObservation.code as code, code.code = '445518008', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Age At Onset';
+    age -> ageObservation.statusCode as sc, sc.code = 'completed';
+    age -> ageObservation.value = create('PQ') as q then QuantityToPQ(age, q);
+  };
+  condition where (contributedToDeath = true) -> observation.entryRelationship as relationship, relationship.typeCode = 'CAUS', relationship.observation as death then {
+    condition -> death.classCode = 'OBS', death.moodCode = 'EVN';
+    condition -> death.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.47';
+    condition -> death.code as code, code.code = 'ASSERTION', code.codeSystem = '2.16.840.1.113883.5.4';
+    condition -> death.statusCode as sc, sc.code = 'completed';
+    condition -> death.value = create('CD') as value, value.code = '419099009', value.codeSystem = '2.16.840.1.113883.6.96', value.displayName = 'Dead';
+  };
+}

@@ -4,7 +4,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use ccda_fhir::{Converter, Options};
+use ccda_fhir::{Converter, Options, metrics};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -34,6 +34,10 @@ enum Command {
         /// Write the report (losses, coverage) here as JSON.
         #[arg(long)]
         report: Option<PathBuf>,
+        /// The input is a section or an entry (an example fragment): convert it inside a minimal
+        /// document, as the corpus metrics do.
+        #[arg(long)]
+        fragment: bool,
     },
     /// Convert a FHIR document Bundle (or a Composition) to a C-CDA document.
     ToCda {
@@ -155,9 +159,13 @@ async fn run(cli: Cli) -> Result<ExitCode> {
             input,
             output,
             report,
+            fragment,
         } => {
             let converter = Converter::with_maps(sources).await?;
-            let xml = std::fs::read_to_string(&input)?;
+            let mut xml = std::fs::read_to_string(&input)?;
+            if fragment && let Some(document) = metrics::as_document(&xml) {
+                xml = document;
+            }
             let result = converter.to_fhir(&xml, &options).await?;
             for loss in &result.report.losses {
                 eprintln!("warning: {}: {loss}", input.display());

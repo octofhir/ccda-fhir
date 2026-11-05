@@ -9,6 +9,7 @@ map "http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda" = "FhirResu
 uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias DiagnosticReport as source
 uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/fhir/StructureDefinition/Specimen" alias Specimen as source
 uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
@@ -36,12 +37,38 @@ group ReportToOrganizer(source report : DiagnosticReport, source bundle : Bundle
     effective -> time.high as high then DateTimeToTS(effective, high);
   };
   report.effective : Period as effective -> organizer.effectiveTime as time then PeriodToIVLTS(effective, time);
+  report.specimen as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Specimen as specimen -> organizer.specimen as cdaSpecimen then SpecimenToCda(specimen, cdaSpecimen);
+    };
+  };
   report.result as ref then {
     bundle.entry as entry where (fullUrl = %ref.reference) then {
       entry.resource : Observation as observation -> organizer.component as component, component.observation as result then {
         observation -> result.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.2', template.extension = '2023-05-01';
         observation.status as status -> result.statusCode as sc, sc.code = evaluate(status, iif($this in ('registered' | 'preliminary'), 'active', iif($this = 'cancelled', 'cancelled', iif($this = 'entered-in-error', 'aborted', 'completed'))));
         observation then ObservationToCda(observation, bundle, result);
+        observation.specimen as specimenRef then {
+          bundle.entry as specimenEntry where (fullUrl = %specimenRef.reference) then {
+            specimenEntry.resource : Specimen as specimen -> result.specimen as cdaSpecimen then SpecimenToCda(specimen, cdaSpecimen);
+          };
+        };
+      };
+    };
+  };
+}
+
+// US Core Specimen → CDA specimen: ids, the type as the playing entity's code, quantity, note.
+group SpecimenToCda(source specimen : Specimen, target cdaSpecimen) {
+  specimen -> cdaSpecimen.typeCode = 'SPC', cdaSpecimen.specimenRole as role, role.classCode = 'SPEC' then {
+    specimen.identifier as identifier -> role.id as id then IdentifierToII(identifier, id);
+    specimen -> role.specimenPlayingEntity as entity then {
+      specimen.type as type where (coding.exists() or text.exists()) -> entity.code = create('CE') as c then CodeableConceptToCD(type, c);
+      specimen.collection as collection then {
+        collection.quantity as quantity -> entity.quantity as q then QuantityToPQ(quantity, q);
+      };
+      specimen.note first as note then {
+        note.text as text -> entity.desc as desc, desc.xmlText = text;
       };
     };
   };
@@ -52,7 +79,12 @@ group PanelToOrganizer(source panel : Observation, source bundle : Bundle, targe
   panel -> organizer.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.26', template.extension = '2015-08-01';
   panel.identifier as identifier -> organizer.id as id then IdentifierToII(identifier, id);
   panel where (identifier.empty()) -> uuid() as u, organizer.id as id, id.root = evaluate(u, $this.upper());
-  panel -> organizer.code as code, code.code = '74728-7', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Vital signs, weight, height, head circumference, oximetry, BMI, and BSA panel - HL7.CCDAr1.1';
+  // The template's code; the panel's other codes (but US Core's 85353-1) as translations.
+  panel -> organizer.code as panelCode, panelCode.code = '74728-7', panelCode.codeSystem = '2.16.840.1.113883.6.1', panelCode.displayName = 'Vital signs, weight, height, head circumference, oximetry, BMI, and BSA panel - HL7.CCDAr1.1' then {
+    panel.code as cc then {
+      cc.coding as coding where (iif(system = 'http://loinc.org' and code in ('85353-1' | '74728-7'), false, true)) -> panelCode.translation as translation then CodingToCD(coding, translation);
+    };
+  };
   panel -> organizer.statusCode as sc, sc.code = 'completed';
   panel.effective : dateTime as effective -> organizer.effectiveTime as time then DateTimeToTS(effective, time);
   panel.effective : Period as effective -> organizer.effectiveTime as time then PeriodToIVLTS(effective, time);
@@ -76,13 +108,24 @@ group ObservationToCda(source observation : Observation, source bundle : Bundle,
   observation.identifier as identifier -> result.id as id then IdentifierToII(identifier, id);
   observation where (identifier.empty()) -> uuid() as u, result.id as id, id.root = evaluate(u, $this.upper());
   observation.code as code -> result.code = create('CD') as c then CodeableConceptToCD(code, c);
+  observation then EffectiveToCda(observation, result);
+  observation then ObservationBodyToCda(observation, bundle, result);
+}
+
+// The time of an observation: a dateTime as the time, a Period as a range.
+group EffectiveToCda(source observation : Observation, target result : CdaObservation) {
   observation.effective : dateTime as effective -> result.effectiveTime as time then DateTimeToTS(effective, time);
   observation.effective : Period as effective -> result.effectiveTime as time then PeriodToIVLTS(effective, time);
+}
+
+// An observation but its id, code and time: value, interpretation, method, site, reference range,
+// performer, comments.
+group ObservationBodyToCda(source observation : Observation, source bundle : Bundle, target result : CdaObservation) {
   observation.value : Quantity as value where (system = 'http://unitsofmeasure.org' or (system.empty() and code.empty() and unit.empty())) -> result.value = create('PQ') as q then {
     value.value as v -> q.value = v;
     value.code as code -> q.unit = code;
   };
-  observation.value : Quantity as value where (system.exists() and system != 'http://unitsofmeasure.org') -> result.value = create('PQ') as q then QuantityToPQ(value, q);
+  observation.value : Quantity as quantity where (iif(quantity.system = 'http://unitsofmeasure.org', false, true) and (quantity.unit.exists() or quantity.code.exists())) -> result.value = create('PQ') as q then QuantityToPQ(quantity, q);
   observation.value : Range as value -> result.value = create('IVL_PQ') as range then {
     value.low as low -> range.low as l then { low.value as v -> l.value = v; low.code as code -> l.unit = code; };
     value.high as high -> range.high as h then { high.value as v -> h.value = v; high.code as code -> h.unit = code; };

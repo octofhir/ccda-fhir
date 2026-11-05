@@ -71,7 +71,7 @@ group CDToCodeableConcept(source src : CD, target tgt : CodeableConcept) {
 group CDToCoding(source src : CD, target tgt : Coding) {
   src.codeSystem as system -> translate(system, 'http://octofhir.com/ccda-fhir/ConceptMap/oid-to-uri', 'code') as uri, tgt.system = evaluate(uri, iif($this.contains(':'), $this, 'urn:oid:' + $this));
   src.codeSystemVersion as version -> tgt.version = version;
-  src.code as code -> tgt.code = code;
+  src.code as code -> tgt.code = evaluate(code, $this.trim());
   src.displayName as display -> tgt.display = display;
 }
 
@@ -80,14 +80,14 @@ group CDToCoding(source src : CD, target tgt : Coding) {
 // one of the approaches the mapping guidance gives.
 group TSToDateTime(source src : TS, target tgt : dateTime) {
   // A value that is not a timestamp (the reader reports it) becomes data-absent-reason error.
-  src.value as v where (v.toString().matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$').not()) -> tgt.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'error';
-  src.value as v where (v.toString().matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$')) -> tgt.value = evaluate(v, $this.toString().select(iif($this.contains('T').not(), iif($this.matches('[+-][0-9]{2}:[0-9]{2}$'), $this.substring(0, $this.length() - 6), $this), iif($this.matches('([+-][0-9]{2}:[0-9]{2}|Z)$').not(), $this.substring(0, 10), iif($this.length() = 19, $this.substring(0, 13) + ':00:00' + $this.substring(13), iif($this.length() = 22, $this.substring(0, 16) + ':00' + $this.substring(16), $this))))));
+  src.value as v where (v.toString().matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-](0[0-9]|1[0-4]):[0-5][0-9]|Z)?$').not()) -> tgt.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'error';
+  src.value as v where (v.toString().matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-](0[0-9]|1[0-4]):[0-5][0-9]|Z)?$')) -> tgt.value = evaluate(v, $this.toString().select(iif($this.contains('T').not(), iif($this.matches('[+-][0-9]{2}:[0-9]{2}$'), $this.substring(0, $this.length() - 6), $this), iif($this.matches('([+-][0-9]{2}:[0-9]{2}|Z)$').not(), $this.substring(0, 10), iif($this.length() = 19, $this.substring(0, 13) + ':00:00' + $this.substring(13), iif($this.length() = 22, $this.substring(0, 16) + ':00' + $this.substring(16), $this))))));
   src.nullFlavor as nf where (%src.value.empty()) -> tgt.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = translate(nf, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NullFlavorDataAbsentReason', 'code');
 }
 
 // CDA timestamp → FHIR date: the date part.
 group TSToDate(source src : TS, target tgt : date) {
-  src.value as v where (v.toString().matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$')) -> tgt.value = evaluate(v, $this.toString().select(iif($this.length() > 10, $this.substring(0, 10), $this)));
+  src.value as v where (v.toString().matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-](0[0-9]|1[0-4]):[0-5][0-9]|Z)?$')) -> tgt.value = evaluate(v, $this.toString().select(iif($this.length() > 10, $this.substring(0, 10), $this)));
 }
 
 group IVLTSToPeriod(source src : IVL_TS, target tgt : Period) {
@@ -100,6 +100,18 @@ group IVLTSToPeriod(source src : IVL_TS, target tgt : Period) {
 group PQToQuantity(source src : PQ, target tgt : Quantity) {
   src.value as v -> tgt.value = v;
   src.unit as unit -> tgt.unit = unit, tgt.system = 'http://unitsofmeasure.org', tgt.code = unit;
+  // A unit that is not UCUM (mapping guidance, "CDA ↔ FHIR Quantity"): nullFlavor OTH, the value
+  // and unit in the translation, the unit's text its originalText.
+  src where (value.empty()) then {
+    src.translation first as translation where (value.exists()) then {
+      translation.value as v -> tgt.value = v;
+      translation.originalText as text then {
+        text.xmlText as t where (t.trim().length() > 0) -> tgt.unit = evaluate(t, $this.trim());
+      };
+      translation.code as code -> tgt.code = code;
+      translation.codeSystem as system -> translate(system, 'http://octofhir.com/ccda-fhir/ConceptMap/oid-to-uri', 'code') as uri, tgt.system = evaluate(uri, iif($this.contains(':'), $this, 'urn:oid:' + $this));
+    };
+  };
 }
 
 group ADToAddress(source src : AD, target tgt : Address) {
@@ -129,12 +141,22 @@ group PNToHumanName(source src : PN, target tgt : HumanName) {
 
 // CDA telecom → FHIR ContactPoint: the URL scheme gives the system.
 group TELToContactPoint(source src : TEL, target tgt : ContactPoint) {
+  src then TELValue(src, tgt);
+  src.use as use -> tgt.use = translate(use, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-TelecomUse', 'code');
+}
+
+// An organization's telecom: never of use home (org-3), so a home use is left out.
+group TELToOrganizationContactPoint(source src : TEL, target tgt : ContactPoint) {
+  src then TELValue(src, tgt);
+  src.use as use where (iif(use in ('H' | 'HP' | 'HV'), false, true)) -> tgt.use = translate(use, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-TelecomUse', 'code');
+}
+
+group TELValue(source src : TEL, target tgt : ContactPoint) {
   src.value as v where (v.startsWith('tel:')) -> tgt.system = 'phone', tgt.value = evaluate(v, $this.substring(4).trim());
   src.value as v where (v.startsWith('fax:')) -> tgt.system = 'fax', tgt.value = evaluate(v, $this.substring(4).trim());
   src.value as v where (v.startsWith('mailto:')) -> tgt.system = 'email', tgt.value = evaluate(v, $this.substring(7).trim());
   src.value as v where (v.startsWith('http:') or v.startsWith('https:')) -> tgt.system = 'url', tgt.value = v;
   src.value as v where (v.contains(':').not()) -> tgt.system = 'other', tgt.value = v;
-  src.use as use -> tgt.use = translate(use, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-TelecomUse', 'code');
   src.nullFlavor as nf where (%src.value.empty()) -> tgt.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = translate(nf, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NullFlavorDataAbsentReason', 'code');
 }
 

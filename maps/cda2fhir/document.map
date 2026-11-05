@@ -14,10 +14,50 @@ uses "http://hl7.org/cda/us/ccda/StructureDefinition/AllergiesAndIntolerancesSec
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProblemSection" alias ProblemSection as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/HealthConcernsSection" alias HealthConcernsSection as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationsSection" alias MedicationsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/DischargeMedicationsSection" alias DischargeMedicationsSection as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/ImmunizationsSection" alias ImmunizationsSection as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/ResultsSection" alias ResultsSection as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/VitalSignsSection" alias VitalSignsSection as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProceduresSection" alias ProceduresSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/EncountersSection" alias EncountersSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AdmissionDiagnosisSection" alias AdmissionDiagnosisSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/DischargeDiagnosisSection" alias DischargeDiagnosisSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SocialHistorySection" alias SocialHistorySection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/GoalsSection" alias GoalsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ReasonforReferralSection" alias ReasonforReferralSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AssessmentandPlanSection" alias AssessmentandPlanSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AssessmentSection" alias AssessmentSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FamilyHistorySection" alias FamilyHistorySection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicalEquipmentSection" alias MedicalEquipmentSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FunctionalStatusSection" alias FunctionalStatusSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MentalStatusSection" alias MentalStatusSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PlanofTreatmentSection" alias PlanofTreatmentSection as source
+// Sections that are narrative only (no entries in their templates): Section converts them whole
+// (title, code, narrative); naming them here counts them as known.
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ChiefComplaintSection" alias ChiefComplaintSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ChiefComplaintandReasonforVisitSection" alias ChiefComplaintandReasonforVisitSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CourseofCareSection" alias CourseofCareSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/GeneralStatusSection" alias GeneralStatusSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HistoryofPresentIllnessSection" alias HistoryofPresentIllnessSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalConsultationsSection" alias HospitalConsultationsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalCourseSection" alias HospitalCourseSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalDischargeInstructionsSection" alias HospitalDischargeInstructionsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalDischargePhysicalSection" alias HospitalDischargePhysicalSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalDischargeStudiesSummarySection" alias HospitalDischargeStudiesSummarySection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicalGeneralHistorySection" alias MedicalGeneralHistorySection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ObjectiveSection" alias ObjectiveSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/OperativeNoteFluidsSection" alias OperativeNoteFluidsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/OperativeNoteSurgicalProcedureSection" alias OperativeNoteSurgicalProcedureSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PostoperativeDiagnosisSection" alias PostoperativeDiagnosisSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureDescriptionSection" alias ProcedureDescriptionSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureDispositionSection" alias ProcedureDispositionSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureEstimatedBloodLossSection" alias ProcedureEstimatedBloodLossSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureImplantsSection" alias ProcedureImplantsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureSpecimensTakenSection" alias ProcedureSpecimensTakenSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ReasonforVisitSection" alias ReasonforVisitSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ReviewofSystemsSection" alias ReviewofSystemsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SubjectiveSection" alias SubjectiveSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SurgicalDrainsSection" alias SurgicalDrainsSection as source
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
 uses "http://hl7.org/fhir/StructureDefinition/Composition" alias Composition as target
 uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as target
@@ -32,21 +72,35 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-immunizations-to-fhir"
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-vitals-to-fhir"
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-procedures-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-encounters-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-social-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-notes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-plans-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-status-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-family-to-fhir"
 
 group ClinicalDocument(source cda : ClinicalDocument, target bundle : Bundle) {
   cda -> bundle.type = 'document';
   cda.id as id -> bundle.identifier as i then IIToIdentifier(id, i);
-  cda.effectiveTime as time where (value.length() > 18) -> bundle.timestamp = create('instant') as ts then TSToDateTime(time, ts);
-  cda -> bundle.entry as entry, entry.resource = create('Composition') as composition, uuid() as compositionId, composition.id = compositionId, entry.fullUrl = append('urn:uuid:', compositionId), uuid() as patientId then {
+  cda.effectiveTime as time where (value.toString().matches('T.*([+-][0-9]{2}:[0-9]{2}|Z)$')) -> bundle.timestamp = create('instant') as ts then TSToDateTime(time, ts);
+  cda -> bundle.entry as entry, entry.resource = create('Composition') as composition, uuid() as compositionId, composition.id = compositionId, entry.fullUrl = append('urn:uuid:', compositionId), uuid() as patientId, uuid() as encounterId, evaluate(cda, iif(componentOf.encompassingEncounter.exists(), 'urn:uuid:' + %encounterId, 'none')) as encounterRef then {
     // The patient (the first recordTarget); the sections refer to it either way.
     cda.recordTarget first as recordTarget then {
-      recordTarget.patientRole as role -> bundle.entry as entry, entry.resource = create('Patient') as patient, patient.id = patientId, entry.fullUrl = append('urn:uuid:', patientId), composition.subject as subject, subject.reference = append('urn:uuid:', patientId) then PatientRoleToPatient(role, patient, bundle);
+      recordTarget.patientRole as role -> bundle.entry as entry, entry.resource = create('Patient') as patient, patient.id = patientId, entry.fullUrl = append('urn:uuid:', patientId), composition.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+        role then PatientRoleToPatient(role, patient, bundle);
+        // Birth sex, sex, gender identity, tribal affiliation: extensions of the Patient.
+        cda then PatientObservations(cda, patient);
+      };
     };
     cda then Header(cda, composition, bundle);
+    // The encounter the document is about (merged with an Encounter Activity of the same id).
+    cda.componentOf as componentOf then {
+      componentOf.encompassingEncounter as encounter -> bundle.entry as entry, entry.resource = create('Encounter') as resource, resource.id = encounterId, entry.fullUrl = append('urn:uuid:', encounterId), composition.encounter as ref, ref.reference = append('urn:uuid:', encounterId), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then EncompassingEncounter(encounter, resource, bundle);
+    };
     cda.component as component then {
       component.structuredBody as body then {
         body.component as sectionComponent then {
-          sectionComponent.section as section -> composition.section as compositionSection then Section(section, compositionSection, bundle, patientId);
+          sectionComponent.section as section -> composition.section as compositionSection then Section(section, compositionSection, bundle, patientId, encounterRef);
         };
       };
     };
@@ -84,13 +138,13 @@ group Header(source cda : ClinicalDocument, target composition : Composition, ta
   };
   cda.legalAuthenticator as authenticator -> composition.attester as attester, attester.mode = 'legal' then {
     authenticator.time as time -> attester.time = create('dateTime') as date then TSToDateTime(time, date);
-    authenticator.assignedEntity as entity where (assignedPerson.exists()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), attester.party as party, party.reference = append('urn:uuid:', id) then AssignedEntityToPractitioner(entity, practitioner);
+    authenticator.assignedEntity as entity -> attester.party as party then AssignedEntityReference(entity, party, bundle);
   };
 }
 
 // An author of the document: a Practitioner (with the organization it represents) or a Device.
 group DocumentAuthor(source author : Author, target composition : Composition, target bundle : Bundle) {
-  author where (assignedAuthor.assignedPerson.exists()) -> composition.author as ref then AuthorReference(author, ref, bundle);
+  author where (assignedAuthor.assignedPerson.exists() or (assignedAuthor.assignedAuthoringDevice.empty() and assignedAuthor.representedOrganization.empty())) -> composition.author as ref then AuthorReference(author, ref, bundle);
   author.assignedAuthor as assigned where (assignedAuthoringDevice.exists()) -> bundle.entry as entry, entry.resource = create('Device') as device, uuid() as id, device.id = id, entry.fullUrl = append('urn:uuid:', id), composition.author as ref, ref.reference = append('urn:uuid:', id) then {
     assigned.assignedAuthoringDevice as authoring then AuthoringDeviceToDevice(authoring, device);
     assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), device.owner as owner, owner.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
@@ -102,7 +156,7 @@ group DocumentAuthor(source author : Author, target composition : Composition, t
 
 // A section: its title, code and narrative, the entries of the kinds of section the maps know,
 // and the sections inside it. Every CDA section becomes a Composition section, in order.
-group Section(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+group Section(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string, source encounterRef : string) {
   section.title as title then {
     title.xmlText as t where (t.trim().length() > 0) -> compositionSection.title = evaluate(t, $this.trim());
   };
@@ -117,6 +171,8 @@ group Section(source section : Section, target compositionSection, target bundle
   section : HealthConcernsSection as concerns then ProblemSection(concerns, compositionSection, bundle, patientId);
   section : MedicationsSection as medications then MedicationsSection(medications, compositionSection, bundle, patientId);
   section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.1') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.1.1').not()) then MedicationsSection(section, compositionSection, bundle, patientId);
+  section : DischargeMedicationsSection as discharge then DischargeMedicationsSection(discharge, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.11') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.11.1').not()) then DischargeMedicationsSection(section, compositionSection, bundle, patientId);
   section : ImmunizationsSection as immunizations then ImmunizationsSection(immunizations, compositionSection, bundle, patientId);
   section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.2') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.2.1').not()) then ImmunizationsSection(section, compositionSection, bundle, patientId);
   section : ResultsSection as results then ResultsSection(results, compositionSection, bundle, patientId);
@@ -125,7 +181,37 @@ group Section(source section : Section, target compositionSection, target bundle
   section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.4') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.4.1').not()) then VitalSignsSection(section, compositionSection, bundle, patientId);
   section : ProceduresSection as procedures then ProceduresSection(procedures, compositionSection, bundle, patientId);
   section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.7') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.7.1').not()) then ProceduresSection(section, compositionSection, bundle, patientId);
+  section : FunctionalStatusSection as functional then StatusSection(functional, compositionSection, bundle, patientId, 'functional-status');
+  section : MentalStatusSection as mental then StatusSection(mental, compositionSection, bundle, patientId, 'cognitive-status');
+  section : MedicalEquipmentSection as equipment then MedicalEquipmentSection(equipment, compositionSection, bundle, patientId);
+  section : FamilyHistorySection as family then FamilyHistorySection(family, compositionSection, bundle, patientId);
+  section : ReasonforReferralSection as referral then ReferralSection(referral, compositionSection, bundle, patientId);
+  section : AssessmentandPlanSection as assessment then PlanOfTreatmentSection(assessment, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.44')) then AdmissionMedicationsSection(section, compositionSection, bundle, patientId);
+  section : GoalsSection as goals then GoalsInSection(goals, compositionSection, bundle, patientId);
+  section : PlanofTreatmentSection as plan then PlanOfTreatmentSection(plan, compositionSection, bundle, patientId);
+  section : SocialHistorySection as social then SocialHistorySection(social, compositionSection, bundle, patientId);
+  section : AdmissionDiagnosisSection as admission then DiagnosisSection(admission, compositionSection, bundle, patientId);
+  section : DischargeDiagnosisSection as discharge then DiagnosisSection(discharge, compositionSection, bundle, patientId);
+  section : EncountersSection as encounters then EncountersSection(encounters, compositionSection, bundle, patientId);
+  section where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.22') and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.2.22.1').not()) then EncountersSection(section, compositionSection, bundle, patientId);
+  // A section of no known kind (a template the maps do not know, or none, or a wrong one) may
+  // still hold entries they know: each domain takes the entries of its templates.
+  section where (templateId.where(root in ('2.16.840.1.113883.10.20.22.2.6' | '2.16.840.1.113883.10.20.22.2.6.1' | '2.16.840.1.113883.10.20.22.2.5' | '2.16.840.1.113883.10.20.22.2.5.1' | '2.16.840.1.113883.10.20.22.2.58' | '2.16.840.1.113883.10.20.22.2.1' | '2.16.840.1.113883.10.20.22.2.1.1' | '2.16.840.1.113883.10.20.22.2.11' | '2.16.840.1.113883.10.20.22.2.11.1' | '2.16.840.1.113883.10.20.22.2.2' | '2.16.840.1.113883.10.20.22.2.2.1' | '2.16.840.1.113883.10.20.22.2.3' | '2.16.840.1.113883.10.20.22.2.3.1' | '2.16.840.1.113883.10.20.22.2.4' | '2.16.840.1.113883.10.20.22.2.4.1' | '2.16.840.1.113883.10.20.22.2.7' | '2.16.840.1.113883.10.20.22.2.7.1' | '2.16.840.1.113883.10.20.22.2.14' | '2.16.840.1.113883.10.20.22.2.56' | '2.16.840.1.113883.10.20.22.2.23' | '2.16.840.1.113883.10.20.22.2.15' | '2.16.840.1.113883.10.20.22.2.60' | '2.16.840.1.113883.10.20.22.2.10' | '2.16.840.1.113883.10.20.22.2.17' | '2.16.840.1.113883.10.20.22.2.22' | '2.16.840.1.113883.10.20.22.2.22.1' | '2.16.840.1.113883.10.20.22.2.43' | '2.16.840.1.113883.10.20.22.2.24' | '2.16.840.1.113883.10.20.22.2.44' | '2.16.840.1.113883.10.20.22.2.9' | '2.16.840.1.113883.10.20.22.2.8' | '1.3.6.1.4.1.19376.1.5.3.1.3.1')).empty()) then {
+    section then AllergiesSection(section, compositionSection, bundle, patientId);
+    section then ProblemSection(section, compositionSection, bundle, patientId);
+    section then MedicationsSection(section, compositionSection, bundle, patientId);
+    section then ImmunizationsSection(section, compositionSection, bundle, patientId);
+    section then ResultsSection(section, compositionSection, bundle, patientId);
+    section then VitalSignsSection(section, compositionSection, bundle, patientId);
+    section then ProceduresSection(section, compositionSection, bundle, patientId);
+    section then EncountersSection(section, compositionSection, bundle, patientId);
+    section then GoalsInSection(section, compositionSection, bundle, patientId);
+    section then FamilyHistorySection(section, compositionSection, bundle, patientId);
+  };
+  // Notes: any section may hold Note Activities.
+  section then NotesInSection(section, compositionSection, bundle, patientId, encounterRef);
   section.component as component then {
-    component.section as nested -> compositionSection.section as compositionNested then Section(nested, compositionNested, bundle, patientId);
+    component.section as nested -> compositionSection.section as compositionNested then Section(nested, compositionNested, bundle, patientId, encounterRef);
   };
 }

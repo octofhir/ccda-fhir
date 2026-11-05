@@ -53,6 +53,11 @@ group CdaPatientToPatient(source p : CdaPatient, target patient : Patient) {
   };
   p.languageCommunication as language -> patient.communication as communication then LanguageCommunication(language, communication);
   p.guardian as guardian -> patient.contact as contact then Guardian(guardian, contact);
+  p.birthplace as birthplace then {
+    birthplace.place as place then {
+      place.addr as addr -> patient.extension as ext, ext.url = 'http://hl7.org/fhir/StructureDefinition/patient-birthPlace', ext.value = create('Address') as a then ADToAddress(addr, a);
+    };
+  };
 }
 
 // A race or ethnicity code: an OMB category, a detailed code, or a null flavor as a category.
@@ -80,6 +85,9 @@ group Guardian(source guardian : Guardian, target contact) {
   guardian.code as code -> contact.relationship as relationship then CDToCodeableConcept(code, relationship);
   guardian.guardianPerson as person then {
     person.name first as name -> contact.name as n then PNToHumanName(name, n);
+    person.sdtcAsPatientRelationship as relation then {
+      relation.code as code -> contact.relationship as relationship then CDToCodeableConcept(code, relationship);
+    };
   };
   guardian.addr first as addr -> contact.address as a then ADToAddress(addr, a);
   guardian.telecom as telecom -> contact.telecom as t then TELToContactPoint(telecom, t);

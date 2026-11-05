@@ -907,7 +907,7 @@ pub fn consensus_markdown(results: &[ConsensusResult]) -> String {
     );
     let _ = writeln!(
         out,
-        "Values of the recommended resources (`mappings/examples/CDAtoFHIRExamples/Rec_Output`) our conversion of the shared input has: **{matched} of {facts} ({})**. Encounters, notes and social history are outside the first stage.\n",
+        "Values of the recommended resources (`mappings/examples/CDAtoFHIRExamples/Rec_Output`) our conversion of the shared input has: **{matched} of {facts} ({})**. The `_draft` outputs are drafts: where they differ from the mapping tables (SNOMED CT as `http://www.snomed.org/`, a note's category as a LOINC part, `34109-9` kept in its type) the tables are followed.\n",
         percent(matched, facts)
     );
     let _ = writeln!(

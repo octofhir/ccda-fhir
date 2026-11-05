@@ -1,0 +1,95 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-devices-to-cda'
+/// name = 'FhirDevicesToCda'
+/// title = 'FHIR Device to C-CDA product instance'
+/// status = 'active'
+/// description = 'Device (US Core 6.1.0 implantable device) to Product Instance with its UDI Organizer (C-CDA 5.0.0), as the product of a procedure or a Non-Medicinal Supply Activity: the inverse of cda-devices-to-fhir.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-devices-to-cda" = "FhirDevicesToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ParticipantRole" alias ParticipantRole as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Supply" alias Supply as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+
+// A device as a Product Instance: the UDI (human-readable form) as the FDA id, else its ids; the
+// type as the playing device's code; the manufacturer as the scoping entity.
+group DeviceToProductInstance(source device : Device, target role : ParticipantRole) {
+  device -> role.classCode = 'MANU';
+  device -> role.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.37';
+  device.udiCarrier first as carrier where (carrierHRF.exists()) -> role.id as id, id.root = '2.16.840.1.113883.3.3719', id.assigningAuthorityName = 'FDA' then {
+    carrier.carrierHRF as hrf -> id.extension = hrf;
+  };
+  device where (udiCarrier.carrierHRF.empty()) then {
+    device.identifier as identifier -> role.id as id then IdentifierToII(identifier, id);
+    device where (identifier.empty()) -> role.id as id, id.nullFlavor = 'UNK';
+  };
+  device -> role.playingDevice as playing then {
+    device.type as type where (coding.exists() or text.exists()) -> playing.code = create('CE') as c then CodeableConceptToCD(type, c);
+    device.modelNumber as model -> playing.manufacturerModelName as name, name.xmlText = model;
+  };
+  device -> role.scopingEntity as scoping then {
+    device where (udiCarrier.exists()) -> scoping.id as id, id.root = '2.16.840.1.113883.3.3719';
+    device where (udiCarrier.empty()) -> scoping.id as id, id.nullFlavor = 'NA';
+    device.manufacturer as manufacturer -> scoping.desc as desc, desc.xmlText = manufacturer;
+  };
+}
+
+// The production identifiers and labels of a device as the UDI Organizer of `owner`.
+group DeviceToUdiOrganizer(source device : Device, target owner) {
+  device where (udiCarrier.deviceIdentifier.exists() or deviceName.where(type = 'udi-label-name').exists() or lotNumber.exists() or serialNumber.exists() or manufactureDate.exists() or expirationDate.exists() or distinctIdentifier.exists()) -> owner.entryRelationship as relationship, relationship.typeCode = 'COMP', relationship.organizer as udi then {
+    device -> udi.classCode = 'CLUSTER', udi.moodCode = 'EVN';
+    device -> udi.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.311', template.extension = '2019-06-21';
+    device.udiCarrier first as carrier where (carrierHRF.exists()) -> udi.id as id, id.root = '2.16.840.1.113883.3.3719' then {
+      carrier.carrierHRF as hrf -> id.extension = hrf;
+    };
+    device where (udiCarrier.carrierHRF.empty()) -> uuid() as u, udi.id as id, id.root = evaluate(u, $this.upper());
+    device -> udi.code as code, code.code = '74711-3', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Unique device identifier';
+    device -> udi.statusCode as sc, sc.code = 'completed';
+    device.udiCarrier first as carrier then {
+      carrier.deviceIdentifier as di -> udi.component as component, component.observation as observation then {
+        di then UdiComponent(observation, '2.16.840.1.113883.10.20.22.4.304', '2022-06-01', 'C101722', 'Primary DI Number');
+        di -> observation.value = create('II') as value, value.root = '1.3.160', value.extension = di, value.displayable = true;
+      };
+    };
+    device.deviceName as name where (type = 'udi-label-name') then {
+      name.name as text -> udi.component as component, component.observation as observation then UdiText(observation, text, '2.16.840.1.113883.10.20.22.4.301', 'C71898', 'Brand Name');
+    };
+    device.lotNumber as text -> udi.component as component, component.observation as observation then UdiText(observation, text, '2.16.840.1.113883.10.20.22.4.315', 'C101672', 'Lot or Batch Number');
+    device.serialNumber as text -> udi.component as component, component.observation as observation then UdiText(observation, text, '2.16.840.1.113883.10.20.22.4.319', 'C101671', 'Serial Number');
+    device.distinctIdentifier as text -> udi.component as component, component.observation as observation then UdiText(observation, text, '2.16.840.1.113883.10.20.22.4.308', 'C113843', 'Distinct Identification Code');
+    device.manufactureDate as date -> udi.component as component, component.observation as observation then {
+      date then UdiComponent(observation, '2.16.840.1.113883.10.20.22.4.316', '2019-06-21', 'C101669', 'Manufacturing Date');
+      date -> observation.value = create('TS') as ts then DateTimeToTS(date, ts);
+    };
+    device.expirationDate as date -> udi.component as component, component.observation as observation then {
+      date then UdiComponent(observation, '2.16.840.1.113883.10.20.22.4.309', '2019-06-21', 'C101670', 'Expiration Date');
+      date -> observation.value = create('TS') as ts then DateTimeToTS(date, ts);
+    };
+  };
+}
+
+group UdiText(target observation, source text : string, source root : string, source code : string, source display : string) {
+  text then UdiComponent(observation, root, '2019-06-21', code, display);
+  text -> observation.value = create('ED') as value, value.xmlText = text;
+}
+
+group UdiComponent(target observation, source root : string, source extension : string, source code : string, source display : string) {
+  root -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+  root -> observation.templateId as template, template.root = root, template.extension = extension;
+  root -> observation.code as cd, cd.code = code, cd.codeSystem = '2.16.840.1.113883.3.26.1.1', cd.displayName = display;
+}
+
+// A device of the Medical Equipment section: a Non-Medicinal Supply Activity of the product.
+group DeviceToSupply(source device : Device, target supply : Supply) {
+  device -> supply.classCode = 'SPLY', supply.moodCode = 'EVN';
+  device -> supply.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.50', template.extension = '2014-06-09';
+  device -> uuid() as u, supply.id as id, id.root = evaluate(u, $this.upper());
+  device -> supply.statusCode as sc, sc.code = 'completed';
+  device -> supply.participant as participant, participant.typeCode = 'PRD', participant.participantRole as role then DeviceToProductInstance(device, role);
+  device then DeviceToUdiOrganizer(device, supply);
+}

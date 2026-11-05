@@ -133,5 +133,5 @@ group Severity(source severity : SeverityObservation, target allergyReaction) {
 }
 
 group Recorder(source author : Author, target allergy : AllergyIntolerance, target bundle : Bundle) {
-  author where (assignedAuthor.assignedPerson.exists()) -> allergy.recorder as ref then AuthorReference(author, ref, bundle);
+  author where (assignedAuthor.assignedAuthoringDevice.empty()) -> allergy.recorder as ref then AuthorReference(author, ref, bundle);
 }

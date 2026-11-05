@@ -8,11 +8,15 @@ map "http://octofhir.com/ccda-fhir/StructureMap/fhir-procedures-to-cda" = "FhirP
 
 uses "http://hl7.org/fhir/StructureDefinition/Procedure" alias FhirProcedure as source
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as source
+uses "http://hl7.org/fhir/StructureDefinition/Location" alias FhirLocation as source
 uses "http://hl7.org/cda/stds/core/StructureDefinition/Procedure" alias CdaProcedure as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-devices-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-encounters-to-cda"
 
 group ProcedureToCda(source resource : FhirProcedure, source bundle : Bundle, target procedure : CdaProcedure) {
   resource -> procedure.classCode = 'PROC', procedure.moodCode = 'EVN';
@@ -40,4 +44,21 @@ group ProcedureToCda(source resource : FhirProcedure, source bundle : Bundle, ta
     reason -> indication.value = create('CD') as value then CodeableConceptToCD(reason, value);
   };
   resource.note as note then AnnotationToComment(note, procedure);
+  // Where it was done: a service delivery location.
+  resource.location as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : FhirLocation as place -> procedure.participant as participant, participant.typeCode = 'LOC', participant.participantRole as role then LocationToServiceDeliveryLocation(place, role);
+    };
+  };
+  // Devices it placed or used: Product Instances, with their UDI Organizers.
+  resource.focalDevice as focal then {
+    focal.manipulated as ref then {
+      bundle.entry as entry where (fullUrl = %ref.reference) then {
+        entry.resource : Device as device -> procedure.participant as participant, participant.typeCode = 'DEV', participant.participantRole as role then {
+          device then DeviceToProductInstance(device, role);
+          device then DeviceToUdiOrganizer(device, procedure);
+        };
+      };
+    };
+  };
 }

@@ -1,0 +1,77 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-plans-to-cda'
+/// name = 'FhirPlansToCda'
+/// title = 'US Core Goal and ServiceRequest to C-CDA goals and plan of treatment'
+/// status = 'active'
+/// description = 'US Core 6.1.0 Goal to Goal Observation and ServiceRequest to Planned Procedure (C-CDA 5.0.0): the inverse of cda-plans-to-fhir. C-CDA on FHIR 2.0.0 has no table for these.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-plans-to-cda" = "FhirPlansToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Goal" alias Goal as source
+uses "http://hl7.org/fhir/StructureDefinition/ServiceRequest" alias ServiceRequest as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Procedure" alias CdaProcedure as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+// A goal: what it is as the value (a quantity target as the code and the value), when it starts
+// and is due, its state, who expressed it.
+group GoalToObservation(source goal : Goal, source bundle : Bundle, target observation : CdaObservation) {
+  goal -> observation.classCode = 'OBS', observation.moodCode = 'GOL';
+  goal -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.121', template.extension = '2022-06-01';
+  goal.identifier as identifier -> observation.id as id then IdentifierToII(identifier, id);
+  goal where (identifier.empty()) -> uuid() as u, observation.id as id, id.root = evaluate(u, $this.upper());
+  goal.target first as goalTarget where (detail.exists()) then {
+    goalTarget.measure as measure -> observation.code = create('CD') as c then CodeableConceptToCD(measure, c);
+    goalTarget.detail : Quantity as quantity -> observation.value = create('PQ') as q then QuantityToPQ(quantity, q);
+    goalTarget.detail : Range as range -> observation.value = create('IVL_PQ') as r then {
+      range.low as low -> r.low as q then QuantityToPQ(low, q);
+      range.high as high -> r.high as q then QuantityToPQ(high, q);
+    };
+  };
+  // The goal itself: the code (the template requires one) and, coded, the value too.
+  goal where (target.detail.empty()) then {
+    goal.description as description where (coding.exists()) -> observation.code = create('CD') as c, observation.value = create('CD') as value then {
+      description then CodeableConceptToCD(description, c);
+      description then CodeableConceptToCD(description, value);
+    };
+    goal.description as description where (coding.empty()) -> observation.code = create('CD') as c then CodeableConceptToCD(description, c);
+  };
+  goal -> observation.statusCode as sc, sc.code = evaluate(goal, iif(lifecycleStatus = 'completed', 'completed', iif(lifecycleStatus = 'cancelled', 'cancelled', iif(lifecycleStatus = 'on-hold', 'suspended', iif(lifecycleStatus in ('proposed' | 'planned' | 'accepted'), 'new', iif(lifecycleStatus = 'entered-in-error', 'nullified', 'active'))))));
+  goal where (start.exists() or target.due.exists()) -> observation.effectiveTime as time then {
+    goal.start : date as start -> time.low as low then DateTimeToTS(start, low);
+    goal.target first as goalTarget then {
+      goalTarget.due : date as due -> time.high as high then DateTimeToTS(due, high);
+    };
+  };
+  goal.expressedBy as ref -> evaluate(goal, 'UNK') as time then ReferenceToAuthor(ref, bundle, time, observation);
+  goal.note as note then AnnotationToComment(note, observation);
+}
+
+// A ServiceRequest → Planned Procedure: the mood from the intent (an order a request, a proposal a
+// proposal, a plan an intent).
+group ServiceRequestToPlanned(source request : ServiceRequest, source bundle : Bundle, target procedure : CdaProcedure) {
+  request -> procedure.classCode = 'PROC';
+  request -> procedure.moodCode = evaluate(request, iif(intent in ('order' | 'original-order' | 'reflex-order' | 'filler-order' | 'instance-order'), 'RQO', iif(intent = 'proposal', 'PRP', 'INT')));
+  request -> procedure.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.41', template.extension = '2022-06-01';
+  request.identifier as identifier -> procedure.id as id then IdentifierToII(identifier, id);
+  request where (identifier.empty()) -> uuid() as u, procedure.id as id, id.root = evaluate(u, $this.upper());
+  request.code as code -> procedure.code = create('CD') as c then CodeableConceptToCD(code, c);
+  request where (code.empty()) -> procedure.code as c, c.nullFlavor = 'UNK';
+  request -> procedure.statusCode as sc, sc.code = 'active';
+  request.occurrence : dateTime as occurrence -> procedure.effectiveTime as time then DateTimeToTS(occurrence, time);
+  request.occurrence : Period as occurrence -> procedure.effectiveTime as time then PeriodToIVLTS(occurrence, time);
+  request.requester as ref -> evaluate(request, iif(authoredOn.hasValue(), authoredOn, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, procedure);
+  request.performer as ref then ReferenceToPerformer(ref, bundle, procedure);
+  request.reasonCode as reason -> procedure.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as indication then {
+    reason -> indication.classCode = 'OBS', indication.moodCode = 'EVN';
+    reason -> indication.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.19', template.extension = '2023-05-01';
+    reason -> uuid() as u, indication.id as id, id.root = evaluate(u, $this.upper());
+    reason -> indication.code as code, code.code = '404684003', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Clinical finding';
+    reason -> indication.statusCode as sc, sc.code = 'completed';
+    reason -> indication.value = create('CD') as value then CodeableConceptToCD(reason, value);
+  };
+  request.note as note then AnnotationToComment(note, procedure);
+}

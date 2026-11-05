@@ -38,6 +38,29 @@ group MedicationRequestToActivity(source request : MedicationRequest, source bun
       bundle.entry as entry where (fullUrl = %ref.reference) then {
         entry.resource : Medication as medication then {
           medication.code as code -> material.code = create('CE') as c then CodeableConceptToCD(code, c);
+          medication.identifier as identifier -> product.id as id then IdentifierToII(identifier, id);
+          medication.manufacturer as manufacturer then {
+            bundle.entry as orgEntry where (fullUrl = %manufacturer.reference) then {
+              orgEntry.resource : Organization as organization -> product.manufacturerOrganization as org then OrganizationToOrganization(organization, org);
+            };
+          };
+        };
+      };
+    };
+  };
+  // The medication's form (administrationUnitCode) and its vehicle (a Drug Vehicle participant).
+  request.medication : Reference as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Medication as medication then {
+        // C-CDA 5.0.0 (dose-unit-or-admin-unit): no administration unit when the dose has a unit.
+        medication.form as form where (%request.dosageInstruction.doseAndRate.dose.where(code.exists() or unit.exists()).empty()) -> activity.administrationUnitCode = create('CE') as c then CodeableConceptToCD(form, c);
+        medication.ingredient as ingredient then {
+          ingredient.item : CodeableConcept as item -> activity.participant as participant, participant.typeCode = 'CSM', participant.participantRole as role then {
+            item -> role.classCode = 'MANU';
+            item -> role.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.24';
+            item -> role.code as code, code.code = '412307009', code.codeSystem = '2.16.840.1.113883.6.96', code.displayName = 'Drug vehicle';
+            item -> role.playingEntity as entity, entity.classCode = 'MMAT', entity.code = create('CE') as c then CodeableConceptToCD(item, c);
+          };
         };
       };
     };
@@ -77,7 +100,8 @@ group DosageToActivity(source dosage : Dosage, target activity : SubstanceAdmini
   };
   dosage.route as route -> activity.routeCode = create('CE') as c then CodeableConceptToCD(route, c);
   dosage.site as site -> activity.approachSiteCode = create('CD') as c then CodeableConceptToCD(site, c);
-  dosage.doseAndRate first as doseAndRate then {
+  // Dose and rate may come as separate items (as CDA → FHIR writes them).
+  dosage.doseAndRate as doseAndRate then {
     doseAndRate.dose : Quantity as dose -> activity.doseQuantity as q then {
       dose.value as v -> q.value = v;
       dose.code as code where (%dose.system = 'http://unitsofmeasure.org') -> q.unit = code;
@@ -90,6 +114,10 @@ group DosageToActivity(source dosage : Dosage, target activity : SubstanceAdmini
       rate.value as v -> q.value = v;
       rate.code as code where (%rate.system = 'http://unitsofmeasure.org') -> q.unit = code;
     };
+  };
+  dosage.maxDosePerPeriod as ratio -> activity.maxDoseQuantity as max then {
+    ratio.numerator as numerator -> max.numerator as q then QuantityToPQ(numerator, q);
+    ratio.denominator as denominator -> max.denominator as q then QuantityToPQ(denominator, q);
   };
   dosage.asNeeded : boolean as asNeeded where (asNeeded = true) -> activity.precondition as precondition, precondition.typeCode = 'PRCN', precondition.criterion as criterion, criterion.code as code, code.nullFlavor = 'NI';
   dosage.text as text -> activity.entryRelationship as relationship, relationship.typeCode = 'COMP', relationship.substanceAdministration as sig then {

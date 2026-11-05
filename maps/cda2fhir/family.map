@@ -1,0 +1,72 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-family-to-fhir'
+/// name = 'CdaFamilyToFhir'
+/// title = 'C-CDA family history to FamilyMemberHistory'
+/// status = 'active'
+/// description = 'Family History Organizer to FamilyMemberHistory (FHIR R4; US Core 6.1.0 has no profile for it): the relative, their sex, birth and death, and each Family History Observation as a condition with its age at onset and whether it caused the death. C-CDA on FHIR 2.0.0 has no table for family history.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-family-to-fhir" = "CdaFamilyToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FamilyHistorySection" alias FamilyHistorySection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FamilyHistoryOrganizer" alias FamilyHistoryOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FamilyHistoryObservation" alias FamilyHistoryObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FamilyHistoryDeathObservation" alias FamilyHistoryDeathObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AgeObservation" alias AgeObservation as source
+uses "http://hl7.org/fhir/StructureDefinition/FamilyMemberHistory" alias FamilyMemberHistory as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+
+group FamilyHistorySection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.organizer : FamilyHistoryOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('FamilyMemberHistory') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.patient as patient, patient.reference = append('urn:uuid:', patientId) then FamilyMember(organizer, resource);
+  };
+}
+
+group FamilyMember(source organizer : Organizer, target resource : FamilyMemberHistory) {
+  organizer.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  organizer -> resource.status = 'completed';
+  organizer.subject as subject then {
+    subject.relatedSubject as related then {
+      related.code as cd -> resource.relationship as cc then CDToCodeableConcept(cd, cc);
+      related.subject as person then {
+        person.name first as name where (item.where(given.exists() or family.exists()).exists()) -> resource.name = evaluate(name, item.select(given.xmlText | family.xmlText).select(trim()).join(' '));
+        person.administrativeGenderCode as gender where (gender.code in ('M' | 'F' | 'UN')) -> resource.sex as cc, cc.coding as coding, coding.system = 'http://hl7.org/fhir/administrative-gender', coding.code = evaluate(gender, iif(code = 'M', 'male', iif(code = 'F', 'female', 'other')));
+        person.birthTime as birth where (value.exists()) -> resource.born = create('date') as born then TSToDate(birth, born);
+      };
+    };
+  };
+  organizer where (subject.relatedSubject.code.empty()) -> resource.relationship as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  // Deceased: the person says so, or a death observation of one of the conditions does.
+  organizer where (subject.relatedSubject.subject.sdtcDeceasedInd.value = true or component.observation.entryRelationship.observation.where(hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.47')).exists()) then {
+    organizer.subject as subject then {
+      subject.relatedSubject as related then {
+        related.subject as person then {
+          person.sdtcDeceasedTime as time where (value.exists()) -> resource.deceased = create('date') as date then TSToDate(time, date);
+        };
+      };
+    };
+    organizer where (subject.relatedSubject.subject.sdtcDeceasedTime.value.empty()) -> resource.deceased = create('boolean') as deceased, deceased.value = true;
+  };
+  organizer.component as component then {
+    component.observation : FamilyHistoryObservation as observation -> resource.condition as condition then FamilyCondition(observation, condition);
+  };
+}
+
+// A family history observation: the condition (its value), its onset (an age, else the time),
+// whether it caused the death.
+group FamilyCondition(source observation : CdaObservation, target condition) {
+  observation.value as value -> condition.code as cc then CDToCodeableConcept(value, cc);
+  observation where (value.empty()) -> condition.code as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  observation.entryRelationship as relationship then {
+    relationship.observation : AgeObservation as age then {
+      age.value as pq where (pq.value.exists()) -> condition.onset = create('Age') as onset then PQToQuantity(pq, onset);
+    };
+    relationship.observation : FamilyHistoryDeathObservation as death -> condition.contributedToDeath = true;
+  };
+  observation where (entryRelationship.observation.where(hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.31')).empty()) then {
+    observation.effectiveTime as time where (value.exists() or low.value.exists() or high.value.exists()) -> condition.onset = create('Period') as onset then IVLTSToPeriod(time, onset);
+  };
+}

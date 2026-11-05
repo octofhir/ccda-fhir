@@ -27,7 +27,13 @@ group VitalSignsPanel(source organizer : VitalSignsOrganizer, target panel : Obs
   organizer.id as id -> panel.identifier as i then IIToIdentifier(id, i);
   organizer -> panel.status = 'final';
   organizer -> panel.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'vital-signs', coding.display = 'Vital Signs';
-  organizer -> panel.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = '85353-1', coding.display = 'Vital signs, weight, height, head circumference, oxygen saturation and BMI panel';
+  // US Core's panel code, then the organizer's own codes (74728-7, 46680005, …) as further codings.
+  organizer -> panel.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = '85353-1', coding.display = 'Vital signs, weight, height, head circumference, oxygen saturation and BMI panel' then {
+    organizer.code as cd where (cd.code.exists() and cd.code != '85353-1') -> cc.coding as own then CDToCoding(cd, own);
+    organizer.code as cd then {
+      cd.translation as translation where (code.exists() and code != '85353-1') -> cc.coding as own then CDToCoding(translation, own);
+    };
+  };
   organizer.effectiveTime as time then {
     time.value as v -> panel.effective = create('dateTime') as date then TSToDateTime(time, date);
     time where (value.empty() and low.value.exists() and (high.empty() or high.value = low.value)) then {

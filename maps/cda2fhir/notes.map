@@ -1,0 +1,77 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-notes-to-fhir'
+/// name = 'CdaNotesToFhir'
+/// title = 'C-CDA notes to US Core DocumentReference'
+/// status = 'active'
+/// description = 'Note Activity, in the Notes section or any other, to US Core 6.1.0 DocumentReference, after "Notes CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-notes-to-fhir" = "CdaNotesToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/NotesSection" alias NotesSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/NoteActivity" alias NoteActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/DocumentReference" alias DocumentReference as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+// The Note Activities of a section (any section may hold them). `encounterRef` is the
+// document's encompassingEncounter, or `none`.
+group NotesInSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string, source encounterRef : string) {
+  section.entry as entry then {
+    entry.act : NoteActivity as note -> bundle.entry as resourceEntry, resourceEntry.resource = create('DocumentReference') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then NoteActivity(note, resource, bundle, encounterRef);
+  };
+}
+
+group NoteActivity(source note : NoteActivity, target resource : DocumentReference, target bundle : Bundle, source encounterRef : string) {
+  note -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-documentreference';
+  note.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  note -> resource.status = 'current';
+  // The type: the specific note type sent as a translation; 34109-9 (Note) when there is none.
+  note.code as code then {
+    code where (translation.exists()) -> resource.type as type then {
+      code.translation as translation -> type.coding as coding then CDToCoding(translation, coding);
+    };
+    code where (translation.empty()) -> resource.type as type then CDToCodeableConcept(code, type);
+  };
+  note where (code.empty()) -> resource.type as type, type.coding as coding, coding.system = 'http://loinc.org', coding.code = '34109-9', coding.display = 'Note';
+  note -> resource.category as category, category.coding as coding, coding.system = 'http://hl7.org/fhir/us/core/CodeSystem/us-core-documentreference-category', coding.code = 'clinical-note', coding.display = 'Clinical Note';
+  note.author as author -> resource.author as ref then AuthorReference(author, ref, bundle);
+  note.author first as author then {
+    author.time as time where (value.toString().matches('T.*([+-][0-9]{2}:[0-9]{2}|Z)$')) -> resource.date = create('instant') as date then TSToDateTime(time, date);
+  };
+  // The content: base64 data as sent, the narrative it refers to as XHTML (resolved before the
+  // maps run), plain text otherwise.
+  note.text as text -> resource.content as content, content.attachment as attachment then {
+    text where (representation = 'B64') then {
+      text.mediaType as type -> attachment.contentType = type;
+      text.xmlText as data -> attachment.data = evaluate(data, $this.replaceMatches('\\s', ''));
+    };
+    text where (iif(representation = 'B64', false, true)) then {
+      text.mediaType as type -> attachment.contentType = type;
+      text where (mediaType.empty()) -> attachment.contentType = 'text/plain';
+      text.xmlText as data where (data.trim().length() > 0) -> attachment.data = evaluate(data, $this.trim().encode('base64'));
+    };
+    // US Core needs data or a URL: a note whose text says nothing has data that is absent.
+    text where (xmlText.where(trim().length() > 0).empty()) -> attachment.data as data, data.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  };
+  note.effectiveTime as time -> resource.context as context, context.period as period then IVLTSToPeriod(time, period);
+  // The encounter: one the note names (by its id, resolved to the Bundle entry after the maps
+  // run), else the document's.
+  note.entryRelationship as relationship where (typeCode = 'COMP') then {
+    relationship.encounter as encounter then {
+      encounter.id first as id -> resource.context as context, context.encounter as ref, ref.identifier as identifier then IIToIdentifier(id, identifier);
+    };
+  };
+  note where (entryRelationship.where(typeCode = 'COMP').encounter.id.empty()) then {
+    encounterRef as e where ($this != 'none') -> resource.context as context, context.encounter as ref, ref.reference = e;
+  };
+  // An external document it replaces, transforms or appends to.
+  note.reference as reference where (typeCode in ('RPLC' | 'XFRM' | 'APND')) then {
+    reference.externalDocument as external then {
+      external.id first as id -> resource.relatesTo as relates, relates.code = evaluate(reference, iif(typeCode = 'RPLC', 'replaces', iif(typeCode = 'XFRM', 'transforms', 'appends'))) then {
+        id -> relates.target as target, target.identifier as identifier then IIToIdentifier(id, identifier);
+      };
+    };
+  };
+}

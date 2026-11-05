@@ -10,19 +10,24 @@ uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProcedureActivityProcedure" alias ProcedureActivityProcedure as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProductInstance" alias ProductInstance as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicalEquipmentOrganizer" alias MedicalEquipmentOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/NonMedicinalSupplyActivity" alias NonMedicinalSupplyActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
 uses "http://hl7.org/fhir/StructureDefinition/Procedure" alias Procedure as target
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-devices-to-fhir"
 
 group ProceduresSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.procedure : ProcedureActivityProcedure as procedure -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle);
+    entry.procedure : ProcedureActivityProcedure as procedure -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle, patientId);
   };
 }
 
-group Procedure(source procedure : ProcedureActivityProcedure, target resource : Procedure, target bundle : Bundle) {
+group Procedure(source procedure : ProcedureActivityProcedure, target resource : Procedure, target bundle : Bundle, source patientId : string) {
   procedure -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure';
   procedure.id as id -> resource.identifier as i then IIToIdentifier(id, i);
   procedure where (negationInd = true) -> resource.status = 'not-done';
@@ -46,4 +51,31 @@ group Procedure(source procedure : ProcedureActivityProcedure, target resource :
     };
     relationship.act : CommentActivity as comment -> resource.note as note then CommentToAnnotation(comment, note);
   };
+  // Where it was done: the first service delivery location.
+  procedure.participant first as participant where (typeCode = 'LOC') then {
+    participant.participantRole as role -> bundle.entry as entry, entry.resource = create('Location') as location, uuid() as id, location.id = id, entry.fullUrl = append('urn:uuid:', id), resource.location as ref, ref.reference = append('urn:uuid:', id) then ParticipantRoleToLocation(role, location);
+  };
+  // Devices it placed or used (Product Instance): US Core implantable devices, the focal devices;
+  // a procedure not done placed none.
+  procedure.participant as participant where (typeCode = 'DEV' and iif(%procedure.negationInd = true, false, true)) then {
+    participant.participantRole : ProductInstance as role -> bundle.entry as entry, entry.resource = create('Device') as device, uuid() as id, device.id = id, entry.fullUrl = append('urn:uuid:', id), device.patient as patient, patient.reference = append('urn:uuid:', patientId), resource.focalDevice as focal, focal.manipulated as ref, ref.reference = append('urn:uuid:', id) then {
+      role -> device.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-implantable-device';
+      role then ProductInstanceToDevice(role, procedure, device);
+    };
+  };
 }
+
+// The Medical Equipment section: procedures (implants), supplies, and organizers of either.
+group MedicalEquipmentSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section then ProceduresSection(section, compositionSection, bundle, patientId);
+  section.entry as entry then {
+    entry.supply : NonMedicinalSupplyActivity as supply then SupplyDevices(supply, compositionSection, bundle, patientId);
+    entry.organizer : MedicalEquipmentOrganizer as organizer then {
+      organizer.component as component then {
+        component.supply : NonMedicinalSupplyActivity as supply then SupplyDevices(supply, compositionSection, bundle, patientId);
+        component.procedure as procedure where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.14')) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle, patientId);
+      };
+    };
+  };
+}
+

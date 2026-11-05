@@ -30,8 +30,9 @@ group PractitionerToAssignedAuthor(source src : Practitioner, target tgt : Assig
   src.telecom as telecom -> tgt.telecom as tel then ContactPointToTEL(telecom, tel);
   src where (address.empty()) -> tgt.addr as addr, addr.nullFlavor = 'NI';
   src where (telecom.empty()) -> tgt.telecom as tel, tel.nullFlavor = 'NI';
-  src -> tgt.assignedPerson as person then {
-    src.name as name -> person.name as pn then HumanNameToPN(name, pn);
+  // A person with a name; a practitioner known only by its ids has none here.
+  src where (name.where(family.exists() or given.exists() or text.exists()).exists()) -> tgt.assignedPerson as person then {
+    src.name as name where (family.exists() or given.exists() or text.exists()) -> person.name as pn then HumanNameToPN(name, pn);
   };
 }
 
@@ -42,8 +43,9 @@ group PractitionerToAssignedEntity(source src : Practitioner, target tgt : Assig
   src.telecom as telecom -> tgt.telecom as tel then ContactPointToTEL(telecom, tel);
   src where (address.empty()) -> tgt.addr as addr, addr.nullFlavor = 'NI';
   src where (telecom.empty()) -> tgt.telecom as tel, tel.nullFlavor = 'NI';
-  src -> tgt.assignedPerson as person then {
-    src.name as name -> person.name as pn then HumanNameToPN(name, pn);
+  // A person with a name; a practitioner known only by its ids has none here.
+  src where (name.where(family.exists() or given.exists() or text.exists()).exists()) -> tgt.assignedPerson as person then {
+    src.name as name where (family.exists() or given.exists() or text.exists()) -> person.name as pn then HumanNameToPN(name, pn);
   };
 }
 
@@ -127,6 +129,7 @@ group RoleToAssignedAuthor(source role : PractitionerRole, source bundle : Bundl
 group ReferenceToPerformer(source ref : Reference, source bundle : Bundle, target owner) {
   bundle.entry as entry where (fullUrl = %ref.reference) then {
     entry.resource : Practitioner as practitioner -> owner.performer as performer, performer.typeCode = 'PRF', performer.assignedEntity as entity then PractitionerToAssignedEntity(practitioner, entity);
+    entry.resource : PractitionerRole as role -> owner.performer as performer, performer.typeCode = 'PRF', performer.assignedEntity as entity then RoleToAssignedEntity(role, bundle, entity);
     entry.resource : Organization as organization -> owner.performer as performer, performer.typeCode = 'PRF', performer.assignedEntity as entity, entity.id as id, id.nullFlavor = 'NA', entity.addr as addr, addr.nullFlavor = 'NI', entity.telecom as tel, tel.nullFlavor = 'NI', entity.representedOrganization as org then OrganizationToOrganization(organization, org);
   };
 }
@@ -138,5 +141,25 @@ group AnnotationToComment(source note : Annotation, target owner) {
     text -> comment.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.64';
     text -> comment.code as code, code.code = '48767-8', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Annotation comment';
     text -> comment.text as t, t.xmlText = text, t.reference as ref, ref.nullFlavor = 'NI';
+  };
+}
+
+// A PractitionerRole as an assigned entity: the Practitioner, the role's code, the Organization.
+group RoleToAssignedEntity(source role : PractitionerRole, source bundle : Bundle, target entity : AssignedEntity) {
+  role.practitioner as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Practitioner as practitioner then PractitionerToAssignedEntity(practitioner, entity);
+    };
+  };
+  role where (practitioner.empty()) then {
+    role -> entity.id as id, id.nullFlavor = 'NI';
+    role -> entity.addr as addr, addr.nullFlavor = 'NI';
+    role -> entity.telecom as tel, tel.nullFlavor = 'NI';
+  };
+  role.code first as code -> entity.code = create('CE') as c then CodeableConceptToCD(code, c);
+  role.organization as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Organization as organization -> entity.representedOrganization as org then OrganizationToOrganization(organization, org);
+    };
   };
 }

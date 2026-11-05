@@ -11,12 +11,16 @@ uses "http://hl7.org/cda/stds/core/StructureDefinition/PIVL-TS" alias PIVL_TS as
 uses "http://hl7.org/cda/stds/core/StructureDefinition/EIVL-TS" alias EIVL_TS as source
 uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-TS" alias IVL_TS as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationActivity" alias MedicationActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/DischargeMedication" alias DischargeMedication as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AdmissionMedication" alias AdmissionMedication as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationFreeTextSig" alias MedicationFreeTextSig as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/MedicationSupplyOrder" alias MedicationSupplyOrder as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/InstructionActivity" alias InstructionActivity as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
 uses "http://hl7.org/fhir/StructureDefinition/MedicationRequest" alias MedicationRequest as target
+uses "http://hl7.org/fhir/StructureDefinition/Medication" alias Medication as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ManufacturedProduct" alias ManufacturedProduct as source
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
@@ -28,20 +32,67 @@ group MedicationsSection(source section : Section, target compositionSection, ta
   };
 }
 
+// Discharge medications: the Medication Activities of the Discharge Medication acts, as
+// MedicationRequests of the discharge category (not in the mapping tables; the US Core
+// medicationrequest-category code says what the section does).
+group DischargeMedicationsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.act : DischargeMedication as discharge then {
+      discharge.entryRelationship as relationship then {
+        relationship.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+          activity -> request.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/medicationrequest-category', coding.code = 'discharge', coding.display = 'Discharge';
+          activity then MedicationRequest(activity, request, bundle);
+        };
+      };
+    };
+    // A Medication Activity straight in the section (the "entries optional" template's way).
+    entry.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      activity -> request.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/medicationrequest-category', coding.code = 'discharge', coding.display = 'Discharge';
+      activity then MedicationRequest(activity, request, bundle);
+    };
+  };
+}
+
+// The Medication: its code, the product's id, the form (administrationUnitCode), the
+// manufacturer, the vehicle as an ingredient.
+group MedicationOf(source activity, source product : ManufacturedProduct, target medication : Medication, target bundle : Bundle) {
+  product -> medication.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-medication';
+  product.id as id where (root.exists()) -> medication.identifier as i then IIToIdentifier(id, i);
+  product.manufacturedMaterial as material then {
+    material.code as code -> medication.code as cc then CDToCodeableConcept(code, cc);
+  };
+  product where (manufacturedMaterial.code.empty()) -> medication.code as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  activity.administrationUnitCode as unit where (unit.code.exists()) -> medication.form as cc then CDToCodeableConcept(unit, cc);
+  product.manufacturerOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), medication.manufacturer as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+  activity.participant as participant where (typeCode = 'CSM') then {
+    participant.participantRole as role then {
+      role.playingEntity as entity then {
+        entity.code as code -> medication.ingredient as ingredient, ingredient.item = create('CodeableConcept') as cc then CDToCodeableConcept(code, cc);
+      };
+    };
+  };
+}
+
 group MedicationRequest(source activity : MedicationActivity, target request : MedicationRequest, target bundle : Bundle) {
   activity -> request.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest';
   activity.id as id -> request.identifier as i then IIToIdentifier(id, i);
-  activity.moodCode as mood -> request.intent = translate(mood, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-MedActivityMood', 'code');
+  // A Planned Medication Activity's intent is set by the plan (plans.map).
+  activity.moodCode as mood where (%activity.hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.42').not()) -> request.intent = translate(mood, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-MedActivityMood', 'code');
   activity.statusCode as status then {
     status.code as code -> request.status = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-MedicationStatus', 'code');
   };
   activity where (statusCode.code.empty()) -> request.status = 'unknown';
   activity where (negationInd = true) -> request.doNotPerform = true;
+  // The medication: a code; a Medication resource when there is more to say (its id, form,
+  // manufacturer, vehicle), as the mapping recommends.
   activity.consumable as consumable then {
     consumable.manufacturedProduct as product then {
-      product.manufacturedMaterial as material then {
-        material.code as code -> request.medication = create('CodeableConcept') as cc then CDToCodeableConcept(code, cc);
+      product where (iif(%activity.administrationUnitCode.code.exists() or manufacturerOrganization.exists() or id.where(root.exists()).exists() or %activity.participant.where(typeCode = 'CSM').exists(), false, true)) then {
+        product.manufacturedMaterial as material then {
+          material.code as code -> request.medication = create('CodeableConcept') as cc then CDToCodeableConcept(code, cc);
+        };
       };
+      product where (%activity.administrationUnitCode.code.exists() or manufacturerOrganization.exists() or id.where(root.exists()).exists() or %activity.participant.where(typeCode = 'CSM').exists()) -> bundle.entry as entry, entry.resource = create('Medication') as medication, uuid() as id, medication.id = id, entry.fullUrl = append('urn:uuid:', id), request.medication = create('Reference') as ref, ref.reference = append('urn:uuid:', id) then MedicationOf(activity, product, medication, bundle);
     };
   };
   activity.author last as author -> request.requester as ref then AuthorReference(author, ref, bundle);
@@ -90,6 +141,10 @@ group Dosage(source activity : MedicationActivity, target dosage) {
     dose.low as low -> doseAndRate.dose = create('Range') as range, range.low as q then PQToQuantity(low, q);
   };
   activity.rateQuantity as rate -> dosage.doseAndRate as doseAndRate, doseAndRate.rate = create('Quantity') as q then PQToQuantity(rate, q);
+  activity.maxDoseQuantity as max -> dosage.maxDosePerPeriod as ratio then {
+    max.numerator as numerator -> ratio.numerator as q then PQToQuantity(numerator, q);
+    max.denominator as denominator -> ratio.denominator as q then PQToQuantity(denominator, q);
+  };
   activity.entryRelationship as relationship then {
     relationship.substanceAdministration : MedicationFreeTextSig as sig then {
       sig.text as text then {
@@ -100,7 +155,20 @@ group Dosage(source activity : MedicationActivity, target dosage) {
       instruction.text as text then {
         text.xmlText as t where (t.trim().length() > 0) -> dosage.patientInstruction = evaluate(t, $this.trim());
       };
-      instruction.code as code where (code.exists()) -> dosage.additionalInstruction as cc then CDToCodeableConcept(code, cc);
+      instruction.code as cd where (cd.code.exists() or cd.originalText.xmlText.exists()) -> dosage.additionalInstruction as cc then CDToCodeableConcept(cd, cc);
     };
   };
+}
+
+// Admission medications (the medications the patient came in with): the Medication Activities of
+// the Admission Medication acts.
+group AdmissionMedicationsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.act : AdmissionMedication as admission then {
+      admission.entryRelationship as relationship then {
+        relationship.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then MedicationRequest(activity, request, bundle);
+      };
+    };
+  };
+  section then MedicationsSection(section, compositionSection, bundle, patientId);
 }

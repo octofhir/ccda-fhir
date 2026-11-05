@@ -1,0 +1,151 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-social-to-cda'
+/// name = 'FhirSocialToCda'
+/// title = 'US Core social history to C-CDA'
+/// status = 'active'
+/// description = 'US Core 6.1.0 smoking status, pregnancy status and intent, sexual orientation, screening and assessment and other social history Observations, and the Patient birth sex, sex, gender identity and tribal affiliation extensions, to Social History section entries (C-CDA 5.0.0 templates): the inverse of "Social History CDA → FHIR" of C-CDA on FHIR 2.0.0, which publishes no FHIR → CDA table for it.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-social-to-cda" = "FhirSocialToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as source
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda"
+
+// A social history Observation, by what it is: its profile, else its code.
+group SocialToCda(source observation : Observation, source bundle : Bundle, target cda : CdaObservation) {
+  observation -> cda.classCode = 'OBS', cda.moodCode = 'EVN';
+  observation -> cda.statusCode as sc, sc.code = 'completed';
+  observation where (meta.profile.where($this = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-smokingstatus').exists() or code.coding.where(system = 'http://loinc.org' and code in ('72166-2' | '11367-0')).exists()) then {
+    observation -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.511', template.extension = '2024-05-01';
+    observation then ObservationToCda(observation, bundle, cda);
+  };
+  observation where (code.coding.where(system = 'http://loinc.org' and code = '82810-3').exists()) then {
+    observation -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.15.3.8', template.extension = '2025-05-01';
+    observation then ObservationToCda(observation, bundle, cda);
+    // The estimated date of delivery.
+    observation.component as component where (code.coding.where(system = 'http://loinc.org' and code = '11778-8').exists()) -> cda.entryRelationship as relationship, relationship.typeCode = 'REFR', relationship.observation as edd then {
+      component -> edd.classCode = 'OBS', edd.moodCode = 'EVN';
+      component -> edd.templateId as template, template.root = '2.16.840.1.113883.10.20.15.3.1';
+      component -> edd.code as code, code.code = '11778-8', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Delivery date Estimated';
+      component -> edd.statusCode as sc, sc.code = 'completed';
+      component.value : dateTime as value -> edd.value = create('TS') as ts then DateTimeToTS(value, ts);
+    };
+  };
+  // Templates that take a range starting at the time.
+  observation where (code.coding.where(system = 'http://loinc.org' and code = '86645-9').exists()) then {
+    observation -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.281', template.extension = '2023-05-01';
+    observation then StartingAt(observation, bundle, cda);
+  };
+  observation where (code.coding.where(system = 'http://loinc.org' and code = '76690-7').exists()) then {
+    observation -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.501', template.extension = '2023-05-01';
+    observation then StartingAt(observation, bundle, cda);
+  };
+  // A screening or assessment (category survey): the Assessment Scale Observation, its members
+  // the supporting observations.
+  observation where (category.coding.where(code = 'survey').exists() and code.coding.where(system = 'http://loinc.org' and code in ('72166-2' | '11367-0' | '82810-3' | '86645-9' | '76690-7')).empty()) then {
+    observation -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.69', template.extension = '2022-06-01';
+    observation -> cda.sdtcCategory as category, category.code = 'survey', category.codeSystem = '2.16.840.1.113883.4.642.1.1125';
+    observation then ObservationToCda(observation, bundle, cda);
+    observation.hasMember as ref then {
+      bundle.entry as entry where (fullUrl = %ref.reference) then {
+        entry.resource : Observation as member -> cda.entryRelationship as relationship, relationship.typeCode = 'COMP', relationship.observation as supporting then {
+          member -> supporting.classCode = 'OBS', supporting.moodCode = 'EVN';
+          member -> supporting.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.86', template.extension = '2022-06-01';
+          member -> supporting.statusCode as sc, sc.code = 'completed';
+          member then ObservationToCda(member, bundle, supporting);
+        };
+      };
+    };
+  };
+  // Any other: a Social History Observation.
+  observation where (iif(meta.profile.where($this = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-smokingstatus').exists(), false, true) and code.coding.where(system = 'http://loinc.org' and code in ('72166-2' | '11367-0' | '82810-3' | '86645-9' | '76690-7')).empty() and category.coding.where(code = 'survey').empty()) then {
+    observation -> cda.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.38', template.extension = '2022-06-01';
+    observation -> cda.sdtcCategory as category, category.code = 'social-history', category.codeSystem = '2.16.840.1.113883.4.642.1.1125';
+    observation then ObservationToCda(observation, bundle, cda);
+  };
+  observation where (effective.empty()) -> cda.effectiveTime as time, time.nullFlavor = 'UNK';
+}
+
+// An observation whose template takes a range from its time (pregnancy intention, sexual
+// orientation): the time is the start; the end is not known.
+group StartingAt(source observation : Observation, source bundle : Bundle, target cda : CdaObservation) {
+  observation.identifier as identifier -> cda.id as id then IdentifierToII(identifier, id);
+  observation where (identifier.empty()) -> uuid() as u, cda.id as id, id.root = evaluate(u, $this.upper());
+  observation.code as code -> cda.code = create('CD') as c then CodeableConceptToCD(code, c);
+  observation.effective : dateTime as effective -> cda.effectiveTime as time then {
+    effective -> time.low as low then DateTimeToTS(effective, low);
+    effective where (%observation.code.coding.where(system = 'http://loinc.org' and code = '86645-9').exists()) -> time.high as high, high.nullFlavor = 'UNK';
+  };
+  observation.effective : Period as effective -> cda.effectiveTime as time then PeriodToIVLTS(effective, time);
+  observation then ObservationBodyToCda(observation, bundle, cda);
+}
+
+// The Patient extensions that are Social History entries in C-CDA.
+group PatientToSocialEntries(source patient : Patient, target section : Section) {
+  patient.extension as extension where (url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex') then {
+    extension.value as value -> section.entry as entry, entry.observation as observation then {
+      value -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+      value -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.200', template.extension = '2024-05-01';
+      value -> observation.code as code, code.code = '76689-9', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Sex assigned at birth';
+      value -> observation.statusCode as sc, sc.code = 'completed';
+      value then PatientTime(patient, observation);
+      value where ($this in ('M' | 'F')) -> observation.value = create('CD') as cd, cd.code = value, cd.codeSystem = '2.16.840.1.113883.5.1';
+      value where ($this = 'UNK') -> observation.value = create('CD') as cd, cd.code = 'UNK', cd.codeSystem = '2.16.840.1.113883.5.1008';
+    };
+  };
+  patient.extension as extension where (url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex') then {
+    extension.value as value -> section.entry as entry, entry.observation as observation then {
+      value -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+      value -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.507', template.extension = '2023-06-28';
+      value -> observation.code as code, code.code = '46098-0', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Sex';
+      value -> observation.statusCode as sc, sc.code = 'completed';
+      value then PatientTime(patient, observation);
+      value -> observation.value = create('CD') as cd, cd.code = value, cd.codeSystem = '2.16.840.1.113883.6.96';
+    };
+  };
+  patient.extension as extension where (url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity') then {
+    extension.value as value -> section.entry as entry, entry.observation as observation then {
+      value -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+      value -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.34.3.45', template.extension = '2023-05-01';
+      value -> uuid() as u, observation.id as id, id.root = evaluate(u, $this.upper());
+      value -> observation.code as code, code.code = '76691-5', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Gender identity';
+      value -> observation.statusCode as sc, sc.code = 'completed';
+      value -> observation.effectiveTime as time, time.low as low, low.nullFlavor = 'UNK';
+      value -> observation.value = create('CD') as cd then CodeableConceptToCD(value, cd);
+    };
+  };
+  patient.extension as extension where (url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-tribal-affiliation') then {
+    extension.extension as inner where (url = 'tribalAffiliation') then {
+      inner.value as value -> section.entry as entry, entry.observation as observation then {
+        value -> observation.classCode = 'OBS', observation.moodCode = 'EVN';
+        value -> observation.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.506', template.extension = '2023-05-01';
+        value -> uuid() as u, observation.id as id, id.root = evaluate(u, $this.upper());
+        value -> observation.code as code, code.code = '95370-3', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Tribal affiliation';
+        value -> observation.statusCode as sc, sc.code = 'completed';
+        value -> observation.value = create('CD') as cd then CodeableConceptToCD(value, cd);
+      };
+    };
+  };
+}
+
+// The time of an observation about the patient at birth: the birth date, else unknown.
+group PatientTime(source patient : Patient, target observation : CdaObservation) {
+  patient.birthDate as date -> observation.effectiveTime as time then DateTimeToTS(date, time);
+  patient where (birthDate.empty()) -> observation.effectiveTime as time, time.nullFlavor = 'UNK';
+}
+
+// A Social History section for the Patient extensions when the Composition has none: the
+// section, a table of what it holds, and its entries.
+group SocialSectionFromPatient(source patient : Patient, target section : Section) {
+  patient -> section.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.17', template.extension = '2015-08-01';
+  patient -> section.code as code, code.code = '29762-2', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Social history Narrative';
+  patient -> section.title as title, title.xmlText = 'Social History';
+  patient -> section.text = evaluate(patient, '<text><table><thead><tr><th>Observation</th><th>Value</th></tr></thead><tbody>' + extension.where(url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex').select('<tr><td>Sex assigned at birth</td><td>' + value.toString().escape('html') + '</td></tr>').join('') + extension.where(url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex').select('<tr><td>Sex</td><td>' + value.toString().escape('html') + '</td></tr>').join('') + extension.where(url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity').select('<tr><td>Gender identity</td><td>' + (value.text | value.coding.display | value.coding.code).first().escape('html') + '</td></tr>').join('') + extension.where(url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-tribal-affiliation').extension.where(url = 'tribalAffiliation').select('<tr><td>Tribal affiliation</td><td>' + (value.text | value.coding.display | value.coding.code).first().escape('html') + '</td></tr>').join('') + '</tbody></table></text>');
+  patient then PatientToSocialEntries(patient, section);
+}

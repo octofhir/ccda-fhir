@@ -1,0 +1,65 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/fhir-notes-to-cda'
+/// name = 'FhirNotesToCda'
+/// title = 'US Core DocumentReference to C-CDA notes'
+/// status = 'active'
+/// description = 'US Core 6.1.0 DocumentReference to Note Activity (C-CDA 5.0.0): the inverse of "Notes CDA → FHIR" of C-CDA on FHIR 2.0.0, which publishes no FHIR → CDA table for notes. The content goes inline (base64); the section narrative gets the text it refers to after the maps run.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/fhir-notes-to-cda" = "FhirNotesToCda"
+
+uses "http://hl7.org/fhir/StructureDefinition/DocumentReference" alias DocumentReference as source
+uses "http://hl7.org/fhir/StructureDefinition/Encounter" alias FhirEncounter as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Act" alias Act as target
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
+
+group DocumentReferenceToNote(source resource : DocumentReference, source bundle : Bundle, target act : Act) {
+  resource -> act.classCode = 'ACT', act.moodCode = 'EVN';
+  resource -> act.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.202', template.extension = '2026-05-01';
+  resource.identifier as identifier -> act.id as id then IdentifierToII(identifier, id);
+  // The code is Note; the specific type a translation.
+  resource -> act.code = create('CD') as noteCode, noteCode.code = '34109-9', noteCode.codeSystem = '2.16.840.1.113883.6.1', noteCode.displayName = 'Note' then {
+    resource.type as type then {
+      type.coding as coding where (iif(system = 'http://loinc.org' and code = '34109-9', false, true)) -> noteCode.translation as translation then CodingToCD(coding, translation);
+    };
+  };
+  // The content inline, base64 as the attachment has it; the reference to the narrative (filled
+  // in after the maps run) as the template requires.
+  resource.content first as content then {
+    content.attachment as attachment -> act.text as text, uuid() as u, text.reference as ref, ref.value = evaluate(u, '#note-' + $this.lower()) then {
+      attachment.data as data where (data.hasValue()) -> text.representation = 'B64', text.xmlText = data then {
+        attachment.contentType as type -> text.mediaType = type;
+      };
+    };
+  };
+  resource -> act.statusCode as sc, sc.code = 'completed';
+  resource.context as context then {
+    context.period as period -> act.effectiveTime as time then PeriodToIVLTS(period, time);
+  };
+  resource where (context.period.empty()) then {
+    resource.date as date -> act.effectiveTime as time then DateTimeToTS(date, time);
+    resource where (date.empty()) -> act.effectiveTime as time, time.nullFlavor = 'UNK';
+  };
+  resource.author as ref -> evaluate(resource, iif(date.hasValue(), date, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, act);
+  resource where (author.empty()) -> act.author as author, author.time as time, time.nullFlavor = 'UNK', author.assignedAuthor as assigned, assigned.id as id, id.nullFlavor = 'NI';
+  // The encounter, by its id.
+  resource.context as context then {
+    context.encounter first as ref then {
+      bundle.entry as entry where (fullUrl = %ref.reference) then {
+        entry.resource : FhirEncounter as encounter -> act.entryRelationship as relationship, relationship.typeCode = 'COMP', relationship.inversionInd = true, relationship.encounter as cdaEncounter, cdaEncounter.classCode = 'ENC', cdaEncounter.moodCode = 'EVN' then {
+          encounter.identifier as identifier -> cdaEncounter.id as id then IdentifierToII(identifier, id);
+          encounter where (identifier.empty()) -> cdaEncounter.id as id, id.nullFlavor = 'NI';
+        };
+      };
+      ref.identifier as identifier where (%ref.reference.empty()) -> act.entryRelationship as relationship, relationship.typeCode = 'COMP', relationship.inversionInd = true, relationship.encounter as cdaEncounter, cdaEncounter.classCode = 'ENC', cdaEncounter.moodCode = 'EVN', cdaEncounter.id as id then IdentifierToII(identifier, id);
+    };
+  };
+  // The documents it replaces, transforms or appends to.
+  resource.relatesTo as relates then {
+    relates.target as target then {
+      target.identifier as identifier -> act.reference as reference, reference.typeCode = evaluate(relates, iif(code = 'replaces', 'RPLC', iif(code = 'transforms', 'XFRM', 'APND'))), reference.externalDocument as external, external.classCode = 'DOCCLIN', external.moodCode = 'EVN', external.id as id then IdentifierToII(identifier, id);
+    };
+  };
+}

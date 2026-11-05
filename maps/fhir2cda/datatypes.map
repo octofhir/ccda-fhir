@@ -52,7 +52,13 @@ group CodeableConceptToCD(source src : CodeableConcept, target tgt : CD) {
   src.coding first as coding then CodingToCD(coding, tgt);
   src.coding not_first as coding -> tgt.translation as translation then CodingToCD(coding, translation);
   src.text as text -> tgt.originalText as original, original.xmlText = text;
-  src where (coding.empty()) -> tgt.nullFlavor = 'OTH';
+  // No coding: the data-absent reason as its nullFlavor; text alone is "other".
+  src where (coding.empty()) then {
+    src.extension as e where (url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason') then {
+      e.value as reason -> tgt.nullFlavor = translate(reason, 'http://hl7.org/fhir/us/ccda/ConceptMap/FC-DataAbsentReasonNullFlavor', 'code');
+    };
+    src where (extension.where(url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason').empty()) -> tgt.nullFlavor = 'OTH';
+  };
 }
 
 group CodingToCD(source src : Coding, target tgt : CD) {
@@ -75,11 +81,14 @@ group PeriodToIVLTS(source src : Period, target tgt : IVL_TS) {
 // FHIR Quantity → CDA PQ: a UCUM code is the unit; a unit outside UCUM goes in a translation's
 // originalText, as the mapping guidance shows.
 group QuantityToPQ(source src : Quantity, target tgt : PQ) {
-  src.value as value -> tgt.value = value;
+  src.value as v where (%src.system = 'http://unitsofmeasure.org' or (%src.unit.empty() and %src.code.empty())) -> tgt.value = v;
   src.code as code where (%src.system = 'http://unitsofmeasure.org') -> tgt.unit = code;
-  src where (system != 'http://unitsofmeasure.org' and (unit.exists() or code.exists())) -> tgt.nullFlavor = 'OTH', tgt.translation as translation then {
-    src.value as value -> translation.value = value;
+  // A unit that is not UCUM (mapping guidance, "CDA ↔ FHIR Quantity"): nullFlavor OTH, the value,
+  // code and system in the translation, the unit as its originalText.
+  src where (iif(system = 'http://unitsofmeasure.org', false, true) and (unit.exists() or code.exists())) -> tgt.nullFlavor = 'OTH', tgt.translation as translation then {
+    src.value as v -> translation.value = v;
     src.code as code -> translation.code = code;
+    src.system as system then SystemToCodeSystem(system, translation);
     src.unit as unit -> translation.originalText as original, original.xmlText = unit;
   };
 }

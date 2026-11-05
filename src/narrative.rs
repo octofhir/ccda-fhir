@@ -89,6 +89,20 @@ pub fn xhtml_of_id(markup: &str, id: &str) -> Option<String> {
     Some(out)
 }
 
+/// The text of a markup document (XHTML, XML), whitespace collapsed; `None` when it does not
+/// parse.
+pub fn plain_text(markup: &str) -> Option<String> {
+    let doc = parse(markup).ok()?;
+    Some(collapse(&node_text(doc.root_element())))
+}
+
+/// `text` escaped for XML content.
+pub fn escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 fn parse(text: &str) -> Result<Document<'_>, String> {
     let options = ParsingOptions {
         allow_dtd: false,

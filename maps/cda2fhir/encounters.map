@@ -1,0 +1,170 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-encounters-to-fhir'
+/// name = 'CdaEncountersToFhir'
+/// title = 'C-CDA encounters to US Core Encounter'
+/// status = 'active'
+/// description = 'Encounter Activity and the header encompassingEncounter to US Core 6.1.0 Encounter, with their locations and encounter diagnoses, after "Encounters CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-encounters-to-fhir" = "CdaEncountersToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/EncompassingEncounter" alias EncompassingEncounter as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/EncounterActivity" alias EncounterActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/EncounterDiagnosis" alias EncounterDiagnosis as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalAdmissionDiagnosis" alias HospitalAdmissionDiagnosis as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/HospitalDischargeDiagnosis" alias HospitalDischargeDiagnosis as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProblemObservation" alias ProblemObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/fhir/StructureDefinition/Encounter" alias Encounter as target
+uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as target
+uses "http://hl7.org/fhir/StructureDefinition/Location" alias Location as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-problems-to-fhir"
+
+group EncountersSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.encounter : EncounterActivity as encounter -> bundle.entry as resourceEntry, resourceEntry.resource = create('Encounter') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then EncounterActivity(encounter, resource, bundle, patientId);
+  };
+}
+
+group EncounterActivity(source encounter : EncounterActivity, target resource : Encounter, target bundle : Bundle, source patientId : string) {
+  encounter -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter';
+  encounter.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  // Status: an encounter with an end (or a single time) is finished; otherwise the statusCode
+  // through the ConceptMap; neither says anything: unknown.
+  encounter where (effectiveTime.value.exists() or effectiveTime.high.value.exists()) -> resource.status = 'finished';
+  encounter where (effectiveTime.value.empty() and effectiveTime.high.value.empty()) then {
+    encounter.statusCode as status then {
+      status.code as code -> resource.status = translate(code, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-EncounterStatus', 'code');
+    };
+    encounter where (statusCode.code.empty()) -> resource.status = 'unknown';
+  };
+  encounter.code as cd then EncounterCode(cd, resource);
+  encounter where (code.empty()) -> resource.class as class then UnknownClass(encounter, class);
+  encounter where (code.empty()) -> resource.type as type then UnknownClass(encounter, type);
+  encounter.effectiveTime as time -> resource.period as period then IVLTSToPeriod(time, period);
+  encounter.sdtcDischargeDispositionCode as code -> resource.hospitalization as hospitalization, hospitalization.dischargeDisposition as cc then CDToCodeableConcept(code, cc);
+  encounter.performer as performer -> resource.participant as participant then {
+    performer.sdtcFunctionCode as code -> participant.type as cc then CDToCodeableConcept(code, cc);
+    performer -> participant.individual as ref then PerformerReference(performer, ref, bundle);
+  };
+  encounter.participant as participant where (typeCode = 'LOC') then {
+    participant.participantRole as role -> bundle.entry as entry, entry.resource = create('Location') as location, uuid() as id, location.id = id, entry.fullUrl = append('urn:uuid:', id), resource.location as encounterLocation, encounterLocation.location as ref, ref.reference = append('urn:uuid:', id) then ParticipantRoleToLocation(role, location);
+  };
+  encounter.entryRelationship as relationship then {
+    relationship.observation : Indication as indication then {
+      indication.value as value -> resource.reasonCode as cc then CDToCodeableConcept(value, cc);
+    };
+    relationship.act : EncounterDiagnosis as diagnosis then DiagnosisAct(diagnosis, resource, bundle, patientId, '');
+    // Admission and discharge diagnoses are encounter diagnoses too, with their role.
+    relationship.act : HospitalAdmissionDiagnosis as diagnosis then DiagnosisAct(diagnosis, resource, bundle, patientId, 'AD');
+    relationship.act : HospitalDischargeDiagnosis as diagnosis then DiagnosisAct(diagnosis, resource, bundle, patientId, 'DD');
+  };
+}
+
+// The Problem Observations of a diagnosis act: Conditions the encounter refers to, with the role
+// of the diagnosis (diagnosis-role) when there is one.
+group DiagnosisAct(source act, target resource : Encounter, target bundle : Bundle, source patientId : string, source role : string) {
+  act.entryRelationship as inner then {
+    inner.observation : ProblemObservation as observation -> bundle.entry as entry, entry.resource = create('Condition') as condition, uuid() as id, condition.id = id, entry.fullUrl = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId), resource.diagnosis as encounterDiagnosis, encounterDiagnosis.condition as ref, ref.reference = append('urn:uuid:', id) then {
+      role where ($this != '') -> encounterDiagnosis.use as use, use.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/diagnosis-role', coding.code = role;
+      observation then EncounterDiagnosisCondition(observation, condition, bundle, patientId);
+    };
+  };
+}
+
+// An encounter diagnosis: the Problem Observation as a US Core encounter diagnosis Condition.
+group EncounterDiagnosisCondition(source observation : ProblemObservation, target condition : Condition, target bundle : Bundle, source patientId : string) {
+  observation -> condition.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-encounter-diagnosis';
+  observation -> condition.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/condition-category', coding.code = 'encounter-diagnosis', coding.display = 'Encounter Diagnosis';
+  observation then ProblemObservationToCondition(observation, condition, bundle, patientId);
+}
+
+// The encounter's code: V3 ActCode (the code or a translation) is the class, the other codes
+// the type. Codes sent with the OID of the ActEncounterCode value set as their system (seen in
+// the HL7 examples) are ActCode codes. CPT evaluation and management codes give the class when there is no ActCode; a class
+// still unknown is data-absent.
+group EncounterCode(source cd : CD, target resource : Encounter) {
+  cd where (codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955')) -> resource.class as class, class.system = 'http://terminology.hl7.org/CodeSystem/v3-ActCode' then {
+    cd.code as c -> class.code = c;
+    cd.displayName as d -> class.display = d;
+  };
+  cd where (iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true)) then {
+    cd.translation first as translation where (codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955')) -> resource.class as class, class.system = 'http://terminology.hl7.org/CodeSystem/v3-ActCode' then {
+      translation.code as c -> class.code = c;
+      translation.displayName as d -> class.display = d;
+    };
+  };
+  cd where (iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true) and translation.where(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955')).empty()) then {
+    cd where (codeSystem = '2.16.840.1.113883.6.12' and code in ('99211' | '99212' | '99213' | '99214' | '99215')) -> resource.class as class, class.system = 'http://terminology.hl7.org/CodeSystem/v3-ActCode', class.code = 'AMB', class.display = 'ambulatory';
+    cd where (codeSystem = '2.16.840.1.113883.6.12' and code in ('99221' | '99222' | '99223')) -> resource.class as class, class.system = 'http://terminology.hl7.org/CodeSystem/v3-ActCode', class.code = 'IMP', class.display = 'inpatient encounter';
+    cd where (codeSystem = '2.16.840.1.113883.6.12' and code in ('99281' | '99282' | '99283' | '99284' | '99285')) -> resource.class as class, class.system = 'http://terminology.hl7.org/CodeSystem/v3-ActCode', class.code = 'EMER', class.display = 'emergency';
+    cd where (iif(codeSystem = '2.16.840.1.113883.6.12' and code in ('99211' | '99212' | '99213' | '99214' | '99215' | '99221' | '99222' | '99223' | '99281' | '99282' | '99283' | '99284' | '99285'), false, true)) -> resource.class as class then UnknownClass(cd, class);
+  };
+  // The type: the code unless it is the ActCode, and the translations that are not.
+  cd where (iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true) and (code.exists() or translation.exists() or originalText.exists())) -> resource.type as type then {
+    cd where (code.exists()) -> type.coding as coding then CDToCoding(cd, coding);
+    cd.translation as translation where (iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true)) -> type.coding as coding then CDToCoding(translation, coding);
+    cd.originalText as text then {
+      text.xmlText as t where (t.trim().length() > 0) -> type.text = evaluate(t, $this.trim());
+    };
+  };
+  cd where (codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955') and (translation.where(iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true)).exists() or originalText.xmlText.where(trim().length() > 0).exists())) -> resource.type as type then {
+    cd.translation as translation where (iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true)) -> type.coding as coding then CDToCoding(translation, coding);
+    cd.originalText as text then {
+      text.xmlText as t where (t.trim().length() > 0) -> type.text = evaluate(t, $this.trim());
+    };
+  };
+  // US Core needs a type: one that is not known is data-absent.
+  cd where (code.empty() and translation.empty() and originalText.xmlText.where(trim().length() > 0).empty()) -> resource.type as type then UnknownClass(cd, type);
+  cd where (codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955') and translation.where(iif(codeSystem in ('2.16.840.1.113883.5.4' | '2.16.840.1.113883.1.11.13955'), false, true)).empty() and originalText.xmlText.where(trim().length() > 0).empty()) -> resource.type as type then UnknownClass(cd, type);
+}
+
+// Data absent (unknown): a class or type the source does not give.
+group UnknownClass(source src, target class) {
+  src -> class.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+}
+
+// The header's encompassingEncounter: the encounter the document is about.
+group EncompassingEncounter(source encounter : EncompassingEncounter, target resource : Encounter, target bundle : Bundle) {
+  encounter -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter';
+  encounter.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  encounter where (effectiveTime.value.exists() or effectiveTime.high.value.exists()) -> resource.status = 'finished';
+  encounter where (effectiveTime.value.empty() and effectiveTime.high.value.empty() and effectiveTime.low.value.exists()) -> resource.status = 'in-progress';
+  encounter where (effectiveTime.value.empty() and effectiveTime.high.value.empty() and effectiveTime.low.value.empty()) -> resource.status = 'unknown';
+  encounter.code as cd then EncounterCode(cd, resource);
+  encounter where (code.empty()) -> resource.class as class then UnknownClass(encounter, class);
+  encounter where (code.empty()) -> resource.type as type then UnknownClass(encounter, type);
+  encounter.effectiveTime as time -> resource.period as period then IVLTSToPeriod(time, period);
+  encounter.dischargeDispositionCode as code -> resource.hospitalization as hospitalization, hospitalization.dischargeDisposition as cc then CDToCodeableConcept(code, cc);
+  encounter.encounterParticipant as participant -> resource.participant as encounterParticipant then {
+    participant.typeCode as code -> encounterParticipant.type as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType', coding.code = code;
+    participant.time as time -> encounterParticipant.period as period then IVLTSToPeriod(time, period);
+    participant.assignedEntity as assigned -> encounterParticipant.individual as ref then AssignedEntityReference(assigned, ref, bundle);
+  };
+  encounter.responsibleParty as responsible then {
+    responsible.assignedEntity as assigned -> resource.participant as encounterParticipant, encounterParticipant.type as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v3-ParticipationType', coding.code = 'RESP', encounterParticipant.individual as ref then AssignedEntityReference(assigned, ref, bundle);
+  };
+  encounter.location as location then {
+    location.healthCareFacility as facility then {
+      facility -> bundle.entry as entry, entry.resource = create('Location') as fhirLocation, uuid() as id, fhirLocation.id = id, entry.fullUrl = append('urn:uuid:', id), resource.location as encounterLocation, encounterLocation.location as ref, ref.reference = append('urn:uuid:', id) then HealthCareFacilityToLocation(facility, fhirLocation);
+      facility.serviceProviderOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), resource.serviceProvider as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+    };
+  };
+}
+
+// Admission and discharge diagnosis sections: their diagnosis acts, encounter diagnoses on their
+// own (the encounter they belong to is the document's).
+group DiagnosisSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.act as act where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.34') or hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.33')) then {
+      act.entryRelationship as inner then {
+        inner.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then EncounterDiagnosisCondition(observation, condition, bundle, patientId);
+      };
+    };
+  };
+}

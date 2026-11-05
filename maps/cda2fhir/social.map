@@ -1,0 +1,186 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-social-to-fhir'
+/// name = 'CdaSocialToFhir'
+/// title = 'C-CDA social history to US Core'
+/// status = 'active'
+/// description = 'Social History section entries to US Core 6.1.0 smoking status, pregnancy status, pregnancy intent and simple observations, and birth sex, sex, gender identity and tribal affiliation to Patient extensions, after "Social History CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-social-to-fhir" = "CdaSocialToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ClinicalDocument" alias ClinicalDocument as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SocialHistorySection" alias SocialHistorySection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SmokingStatusMeaningfulUse" alias SmokingStatusMeaningfulUse as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/TobaccoUse" alias TobaccoUse as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SmokingStatus" alias SmokingStatus as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PregnancyStatusObservation" alias PregnancyStatusObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PregnancyIntentionInNextYear" alias PregnancyIntentionInNextYear as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/EstimatedDateofDelivery" alias EstimatedDateofDelivery as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AssessmentScaleObservation" alias AssessmentScaleObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AssessmentScaleSupportingObservation" alias AssessmentScaleSupportingObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/BirthSexObservation" alias BirthSexObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SexObservation" alias SexObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/GenderIdentityObservation" alias GenderIdentityObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/TribalAffiliationObservation" alias TribalAffiliationObservation as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as source
+// Observations SocialObservation converts by the general rule (a simple observation).
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SocialHistoryObservation" alias SocialHistoryObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SexualOrientationObservation" alias SexualOrientationObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CaregiverCharacteristics" alias CaregiverCharacteristics as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CulturalandReligiousObservation" alias CulturalandReligiousObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CharacteristicsofHomeEnvironment" alias CharacteristicsofHomeEnvironment as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/BasicOccupationObservation" alias BasicOccupationObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/BasicIndustryObservation" alias BasicIndustryObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/DisabilityStatusObservation" alias DisabilityStatusObservation as source
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/fhir/StructureDefinition/CodeableConcept" alias CodeableConcept as target
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
+
+// The templates that are Patient extensions in FHIR, not Observations.
+group SocialHistorySection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.200').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.507').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.34.3.45').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.506').not() and code.where(code = '76691-5' and codeSystem = '2.16.840.1.113883.6.1').empty()) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then SocialObservation(observation, resource, bundle, patientId);
+  };
+}
+
+// One social history observation, by its template: smoking status (each of its C-CDA
+// templates), pregnancy status, pregnancy intention, and any other as a simple observation.
+group SocialObservation(source observation : CdaObservation, target resource : Observation, target bundle : Bundle, source patientId : string) {
+  observation -> resource.status = 'final';
+  observation -> resource.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'social-history', coding.display = 'Social History';
+  observation : SmokingStatusMeaningfulUse as smoking then SmokingStatusObservation(smoking, resource, bundle);
+  observation : TobaccoUse as smoking where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.78').not()) then SmokingStatusObservation(smoking, resource, bundle);
+  observation : SmokingStatus as smoking where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.78').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.85').not()) then SmokingStatusObservation(smoking, resource, bundle);
+  observation : PregnancyStatusObservation as pregnancy then PregnancyStatus(pregnancy, resource, bundle);
+  observation : PregnancyIntentionInNextYear as intention then PregnancyIntent(intention, resource, bundle);
+  observation : AssessmentScaleObservation as scale then AssessmentScale(scale, resource, bundle, patientId);
+  observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.78').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.85').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.511').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.15.3.8').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.281').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.69').not()) then {
+    observation where (code.where(code = '76690-7' and codeSystem = '2.16.840.1.113883.6.1').exists()) -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-sexual-orientation';
+    observation where (code.where(code = '76690-7' and codeSystem = '2.16.840.1.113883.6.1').empty()) -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-simple-observation';
+    observation then ObservationContent(observation, resource, bundle);
+  };
+}
+
+// Smoking status: US Core 6.1.0 takes one time; a Tobacco Use range gives its start (the
+// mapping's "omit the high value").
+group SmokingStatusObservation(source observation : CdaObservation, target resource : Observation, target bundle : Bundle) {
+  observation -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-smokingstatus';
+  observation then SingleEffective(observation, resource);
+  observation then ObservationBody(observation, resource, bundle);
+}
+
+// An assessment scale (a screening questionnaire's score) → US Core screening and assessment;
+// its supporting observations (the answers) are its members.
+group AssessmentScale(source observation : CdaObservation, target resource : Observation, target bundle : Bundle, source patientId : string) {
+  observation -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-screening-assessment';
+  observation -> resource.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'survey', coding.display = 'Survey';
+  observation then ObservationContent(observation, resource, bundle);
+  observation.entryRelationship as relationship then {
+    relationship.observation : AssessmentScaleSupportingObservation as supporting -> bundle.entry as memberEntry, memberEntry.resource = create('Observation') as member, uuid() as id, member.id = id, memberEntry.fullUrl = append('urn:uuid:', id), resource.hasMember as ref, ref.reference = append('urn:uuid:', id), member.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      supporting -> member.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-screening-assessment';
+      supporting -> member.status = 'final';
+      supporting -> member.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'survey', coding.display = 'Survey';
+      supporting then ObservationContent(supporting, member, bundle);
+      supporting where (effectiveTime.empty()) then ObservationEffective(observation, member);
+    };
+  };
+}
+
+// Pregnancy status: the code is 82810-3 whatever the C-CDA version wrote; an unknown value is
+// the NullFlavor code; the estimated date of delivery a component.
+group PregnancyStatus(source observation : CdaObservation, target resource : Observation, target bundle : Bundle) {
+  observation -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-pregnancystatus';
+  observation.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  observation -> resource.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = '82810-3', coding.display = 'Pregnancy status';
+  observation then SingleEffective(observation, resource);
+  // Not pregnant was written as a negated "Pregnancy"; an unknown status as an observation with
+  // nullFlavor UNK.
+  observation where (negationInd = true and value.code = '77386006') -> resource.value = create('CodeableConcept') as cc, cc.coding as coding, coding.system = 'http://snomed.info/sct', coding.code = '60001007', coding.display = 'Not pregnant';
+  observation where (nullFlavor = 'UNK') -> resource.value = create('CodeableConcept') as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor', coding.code = 'UNK', coding.display = 'unknown';
+  observation where (iif(negationInd = true and value.code = '77386006', false, true) and iif(nullFlavor = 'UNK', false, true)) then {
+    observation.value as value then PregnancyValue(value, resource);
+  };
+  observation.author last as author -> resource.performer as ref then AuthorReference(author, ref, bundle);
+  observation.entryRelationship as relationship then {
+    relationship.observation : EstimatedDateofDelivery as edd then {
+      edd.value as value -> resource.component as component, component.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = '11778-8', coding.display = 'Delivery date Estimated', component.value = create('dateTime') as date then TSToDateTime(value, date);
+    };
+  };
+}
+
+// Pregnancy intention in the next year: the time is the start of the range.
+group PregnancyIntent(source observation : CdaObservation, target resource : Observation, target bundle : Bundle) {
+  observation -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-pregnancyintent';
+  observation.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  observation -> resource.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = '86645-9', coding.display = 'Pregnancy intention in the next year - Reported';
+  observation then SingleEffective(observation, resource);
+  observation.value as value then PregnancyValue(value, resource);
+  observation.author last as author -> resource.performer as ref then AuthorReference(author, ref, bundle);
+}
+
+group PregnancyValue(source value : CD, target resource : Observation) {
+  value where (code.exists()) -> resource.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  value where (code.empty() and nullFlavor = 'UNK') -> resource.value = create('CodeableConcept') as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/v3-NullFlavor', coding.code = 'UNK', coding.display = 'unknown';
+  value.nullFlavor as nf where (%value.code.empty() and nf != 'UNK') -> resource.value = create('CodeableConcept') as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = translate(nf, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NullFlavorDataAbsentReason', 'code');
+}
+
+// One time for profiles that take only a dateTime: the first of the time, its start, its end,
+// the author's time.
+group SingleEffective(source observation : CdaObservation, target resource : Observation) {
+  observation.effectiveTime as time then {
+    time.value as v -> resource.effective = create('dateTime') as date then TSToDateTime(time, date);
+    time.low as low where (value.exists() and %time.value.empty()) -> resource.effective = create('dateTime') as date then TSToDateTime(low, date);
+    time.high as high where (value.exists() and %time.value.empty() and %time.low.value.empty()) -> resource.effective = create('dateTime') as date then TSToDateTime(high, date);
+  };
+  observation where (effectiveTime.value.empty() and effectiveTime.low.value.empty() and effectiveTime.high.value.empty()) then {
+    observation.author first as author then {
+      author.time as time where (value.exists()) -> resource.effective = create('dateTime') as date then TSToDateTime(time, date);
+    };
+  };
+}
+
+// Birth sex, sex, gender identity and tribal affiliation, wherever in the document: Patient
+// extensions (the mapping: no Observation is made for them).
+group PatientObservations(source cda : ClinicalDocument, target patient : Patient) {
+  cda.component as component then {
+    component.structuredBody as body then {
+      body.component as sectionComponent then {
+        sectionComponent.section as section then SectionPatientObservations(section, patient);
+      };
+    };
+  };
+}
+
+group SectionPatientObservations(source section : Section, target patient : Patient) {
+  section.entry as entry then {
+    entry.observation : BirthSexObservation as observation then {
+      observation.value as value then {
+        value.code as c where (c in ('M' | 'F' | 'UNK')) -> patient.extension as e, e.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex', e.value = create('code') as v, v.value = c;
+        value where (code.empty() and nullFlavor.exists()) -> patient.extension as e, e.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex', e.value = create('code') as v, v.value = 'UNK';
+      };
+    };
+    entry.observation : SexObservation as observation then {
+      observation.value as value then {
+        value.code as c -> patient.extension as e, e.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex', e.value = create('code') as v, v.value = c;
+      };
+    };
+    entry.observation : GenderIdentityObservation as observation then {
+      observation.value as value -> patient.extension as e, e.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity', e.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+    };
+    // Gender identity sent as a social history observation (LOINC 76691-5).
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.34.3.45').not() and code.where(code = '76691-5' and codeSystem = '2.16.840.1.113883.6.1').exists()) then {
+      observation.value as value -> patient.extension as e, e.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity', e.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+    };
+    entry.observation : TribalAffiliationObservation as observation then {
+      observation.value as value -> patient.extension as e, e.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-tribal-affiliation', e.extension as inner, inner.url = 'tribalAffiliation', inner.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+    };
+  };
+  section.component as component then {
+    component.section as nested then SectionPatientObservations(nested, patient);
+  };
+}

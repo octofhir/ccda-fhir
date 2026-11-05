@@ -26,6 +26,7 @@ uses "http://hl7.org/cda/us/ccda/StructureDefinition/ResultObservation" alias Re
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
 uses "http://hl7.org/fhir/StructureDefinition/DiagnosticReport" alias DiagnosticReport as target
 uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/fhir/StructureDefinition/Specimen" alias Specimen as target
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
@@ -49,8 +50,8 @@ group DiagnosticReport(source organizer : ResultOrganizer, target report : Diagn
   // effectiveTime: a point, or a period; low and high the same are a point.
   // Without an effectiveTime of its own, the organizer spans its observations' times.
   organizer where (effectiveTime.where(value.exists() or low.value.exists()).empty() and component.observation.effectiveTime.where(value.exists() or low.value.exists()).exists()) -> report.effective = create('Period') as period then {
-    organizer -> period.start = create('dateTime') as start, start.value = evaluate(organizer, component.observation.effectiveTime.select(iif(value.exists(), value, low.value)).toString().where(matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$')).select(iif(length() > 10 and contains('T') and matches('([+-][0-9]{2}:[0-9]{2}|Z)$'), $this, substring(0, 10))).first());
-    organizer -> period.end = create('dateTime') as end, end.value = evaluate(organizer, component.observation.effectiveTime.select(iif(value.exists(), value, low.value)).toString().where(matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-][0-9]{2}:[0-9]{2}|Z)?$')).select(iif(length() > 10 and contains('T') and matches('([+-][0-9]{2}:[0-9]{2}|Z)$'), $this, substring(0, 10))).last());
+    organizer -> period.start = create('dateTime') as start, start.value = evaluate(organizer, component.observation.effectiveTime.select(iif(value.exists(), value, low.value)).toString().where(matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-](0[0-9]|1[0-4]):[0-5][0-9]|Z)?$')).select(iif(contains('T').not(), iif(matches('[+-][0-9]{2}:[0-9]{2}$'), substring(0, length() - 6), $this), iif(matches('([+-][0-9]{2}:[0-9]{2}|Z)$').not(), substring(0, 10), iif(length() = 19, substring(0, 13) + ':00:00' + substring(13), iif(length() = 22, substring(0, 16) + ':00' + substring(16), $this))))).first());
+    organizer -> period.end = create('dateTime') as end, end.value = evaluate(organizer, component.observation.effectiveTime.select(iif(value.exists(), value, low.value)).toString().where(matches('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?)?)?)?)?([+-](0[0-9]|1[0-4]):[0-5][0-9]|Z)?$')).select(iif(contains('T').not(), iif(matches('[+-][0-9]{2}:[0-9]{2}$'), substring(0, length() - 6), $this), iif(matches('([+-][0-9]{2}:[0-9]{2}|Z)$').not(), substring(0, 10), iif(length() = 19, substring(0, 13) + ':00:00' + substring(13), iif(length() = 22, substring(0, 16) + ':00' + substring(16), $this))))).last());
   };
   organizer.effectiveTime as time then {
     time.value as v -> report.effective = create('dateTime') as date then TSToDateTime(time, date);
@@ -60,15 +61,20 @@ group DiagnosticReport(source organizer : ResultOrganizer, target report : Diagn
     time where (value.empty() and low.value.exists() and high.value.exists() and high.value != low.value) -> report.effective = create('Period') as period then IVLTSToPeriod(time, period);
   };
   // issued: the organizer's author time, when it is precise enough for an instant.
+  // Without one, issued is data-absent (as the mapping's example has it): US Core needs it.
   organizer.author first as author then {
-    author.time as time where (value.length() > 18) -> report.issued = create('instant') as issued then TSToDateTime(time, issued);
+    author.time as time where (value.toString().matches('T.*([+-][0-9]{2}:[0-9]{2}|Z)$')) -> report.issued = create('instant') as issued then TSToDateTime(time, issued);
   };
+  organizer where (author.time.value.where(toString().matches('T.*([+-][0-9]{2}:[0-9]{2}|Z)$')).empty()) -> report.issued as issued, issued.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  // Specimens (CF-results): the organizer's, with the Specimen Collection Procedure's body site.
+  organizer.specimen as specimen -> bundle.entry as entry, entry.resource = create('Specimen') as resource, uuid() as id, resource.id = id, entry.fullUrl = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId), report.specimen as ref, ref.reference = append('urn:uuid:', id) then SpecimenToSpecimen(specimen, organizer, resource);
   organizer.component as component then {
-    component.observation : ResultObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as result, uuid() as id, result.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), report.result as ref, ref.reference = append('urn:uuid:', id), result.subject as subject, subject.reference = append('urn:uuid:', patientId) then ResultObservation(observation, result, bundle);
+    component.observation : ResultObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as result, uuid() as id, result.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), report.result as ref, ref.reference = append('urn:uuid:', id), result.subject as subject, subject.reference = append('urn:uuid:', patientId) then ResultObservation(observation, result, bundle, patientId);
   };
 }
 
-group ResultObservation(source observation : ResultObservation, target result : Observation, target bundle : Bundle) {
+group ResultObservation(source observation : ResultObservation, target result : Observation, target bundle : Bundle, source patientId : string) {
+  observation.specimen as specimen -> bundle.entry as entry, entry.resource = create('Specimen') as resource, uuid() as id, resource.id = id, entry.fullUrl = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId), result.specimen as ref, ref.reference = append('urn:uuid:', id) then SpecimenToSpecimen(specimen, observation, resource);
   observation -> result.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab';
   observation -> result.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'laboratory';
   observation.statusCode as status then {
@@ -81,8 +87,12 @@ group ResultObservation(source observation : ResultObservation, target result : 
 // What result and vital sign observations share: identifier, code, time, value, interpretation,
 // method, site, reference range, author, comments.
 group ObservationContent(source observation : CdaObservation, target result : Observation, target bundle : Bundle) {
-  observation.id as id -> result.identifier as i then IIToIdentifier(id, i);
-  observation.code as code -> result.code as cc then CDToCodeableConcept(code, cc);
+  observation then ObservationEffective(observation, result);
+  observation then ObservationBody(observation, result, bundle);
+}
+
+// The time of an observation: a single time as a dateTime, a range as a Period.
+group ObservationEffective(source observation : CdaObservation, target result : Observation) {
   observation.effectiveTime as time then {
     time.value as v -> result.effective = create('dateTime') as date then TSToDateTime(time, date);
     time where (value.empty() and low.value.exists() and (high.empty() or high.value = low.value)) then {
@@ -90,16 +100,24 @@ group ObservationContent(source observation : CdaObservation, target result : Ob
     };
     time where (value.empty() and low.value.exists() and high.value.exists() and high.value != low.value) -> result.effective = create('Period') as period then IVLTSToPeriod(time, period);
   };
-  observation.value : PQ as value -> result.value = create('Quantity') as q then PQToQuantity(value, q);
-  observation.value : IVL_PQ as value -> result.value = create('Range') as range then {
+}
+
+// An observation but its time: identifier, code, value, interpretation, method, site, reference
+// range, author, comments.
+group ObservationBody(source observation : CdaObservation, target result : Observation, target bundle : Bundle) {
+  observation.id as id -> result.identifier as i then IIToIdentifier(id, i);
+  observation.code as code -> result.code as cc then CDToCodeableConcept(code, cc);
+  observation where (code.empty()) -> result.code as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  observation.value : PQ as pq where (pq.value.exists() or pq.translation.value.exists()) -> result.value = create('Quantity') as q then PQToQuantity(pq, q);
+  observation.value : IVL_PQ as value where (low.value.exists() or high.value.exists()) -> result.value = create('Range') as range then {
     value.low as low -> range.low as q then PQToQuantity(low, q);
     value.high as high -> range.high as q then PQToQuantity(high, q);
   };
-  observation.value : CD as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
-  observation.value : CE as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
-  observation.value : CV as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
-  observation.value : CO as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
-  observation.value : CS as value -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CD as value where (code.exists() or translation.exists() or originalText.xmlText.exists()) -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CE as value where (code.exists() or translation.exists() or originalText.xmlText.exists()) -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CV as value where (code.exists() or translation.exists() or originalText.xmlText.exists()) -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CO as value where (code.exists() or translation.exists() or originalText.xmlText.exists()) -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
+  observation.value : CS as value where (code.exists() or translation.exists() or originalText.xmlText.exists()) -> result.value = create('CodeableConcept') as cc then CDToCodeableConcept(value, cc);
   observation.value : ST as value then {
     value.xmlText as t where (t.trim().length() > 0) -> result.value = evaluate(t, $this.trim());
   };
@@ -115,7 +133,7 @@ group ObservationContent(source observation : CdaObservation, target result : Ob
   observation.value : BL as value then {
     value.value as v -> result.value = create('boolean') as b, b.value = v;
   };
-  observation.value : TS as value -> result.value = create('dateTime') as date then TSToDateTime(value, date);
+  observation.value : TS as ts where (ts.value.exists()) -> result.value = create('dateTime') as date then TSToDateTime(ts, date);
   observation.value as value then {
     value.nullFlavor as nf where (%value.code.empty() and %value.value.empty() and %value.xmlText.empty() and %value.translation.empty() and %value.originalText.empty() and %value.low.empty() and %value.high.empty() and %value.item.empty()) -> result.dataAbsentReason as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/data-absent-reason', coding.code = translate(nf, 'http://hl7.org/fhir/us/ccda/ConceptMap/CF-NullFlavorDataAbsentReason', 'code');
   };
@@ -140,5 +158,34 @@ group ObservationContent(source observation : CdaObservation, target result : Ob
   observation.author last as author -> result.performer as ref then AuthorReference(author, ref, bundle);
   observation.entryRelationship as relationship then {
     relationship.act : CommentActivity as comment -> result.note as note then CommentToAnnotation(comment, note);
+  };
+}
+
+// A CDA specimen → US Core Specimen: its ids, type (the code, else the name), quantity,
+// description; the body site of the Specimen Collection Procedure (17636008) of `owner`.
+group SpecimenToSpecimen(source specimen, source owner, target resource : Specimen) {
+  specimen -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-specimen';
+  specimen.specimenRole as role then {
+    role.id as id where (root.exists() or extension.exists()) -> resource.identifier as i then IIToIdentifier(id, i);
+    role.specimenPlayingEntity as entity then {
+      entity.code as cd where (cd.code.exists() or cd.originalText.xmlText.exists()) -> resource.type as cc then CDToCodeableConcept(cd, cc);
+      entity where (code.where(code.exists() or originalText.xmlText.exists()).empty()) then {
+        entity.name first as name then {
+          name.item as item then {
+            item.xmlText as t where (t.trim().length() > 0) -> resource.type as cc, cc.text = evaluate(t, $this.trim());
+          };
+        };
+      };
+      entity.quantity first as quantity -> resource.collection as collection, collection.quantity as q then PQToQuantity(quantity, q);
+      entity.desc as desc then {
+        desc.xmlText as t where (t.trim().length() > 0) -> resource.note as note, note.text = evaluate(t, $this.trim());
+      };
+    };
+  };
+  specimen where (specimenRole.specimenPlayingEntity.where(code.where(code.exists() or originalText.xmlText.exists()).exists() or name.item.xmlText.exists()).empty()) -> resource.type as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  owner.component as component then {
+    component.procedure as collected where (code.code = '17636008') then {
+      collected.targetSiteCode first as site -> resource.collection as collection, collection.bodySite as cc then CDToCodeableConcept(site, cc);
+    };
   };
 }

@@ -22,6 +22,13 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-medications-to-cda"
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-immunizations-to-cda"
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda"
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-procedures-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-encounters-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-social-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-notes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-plans-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-status-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-family-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-devices-to-cda"
 
 group Document(source bundle : Bundle, target cda : ClinicalDocument) {
   bundle.entry first as entry then {
@@ -83,11 +90,33 @@ group Header(source composition : Composition, source bundle : Bundle, target cd
           };
           practitioner then PractitionerToAssignedEntity(practitioner, entity);
         };
+        entry.resource : PractitionerRole as role -> cda.legalAuthenticator as authenticator, authenticator.signatureCode as signature, signature.code = 'S', authenticator.assignedEntity as entity then {
+          attester.time as time -> authenticator.time as t then DateTimeToTS(time, t);
+          attester where (time.empty()) then {
+            composition.date as date -> authenticator.time as t then DateTimeToTS(date, t);
+          };
+          role then RoleToAssignedEntity(role, bundle, entity);
+        };
       };
+    };
+  };
+  // The encounter the document is about: componentOf/encompassingEncounter.
+  composition.encounter as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Encounter as encounter -> cda.componentOf as componentOf, componentOf.encompassingEncounter as encompassing then EncounterToEncompassing(encounter, bundle, encompassing);
     };
   };
   composition -> cda.component as component, component.structuredBody as body then {
     composition.section as section -> body.component as sectionComponent, sectionComponent.section as cdaSection then Section(section, bundle, cdaSection);
+    // Birth sex, sex, gender identity, tribal affiliation are Social History entries in C-CDA:
+    // a section of their own when the Composition has no Social History section.
+    composition where (section.code.coding.where(system = 'http://loinc.org' and code = '29762-2').empty()) then {
+      composition.subject as subject then {
+        bundle.entry as entry where (fullUrl = %subject.reference) then {
+          entry.resource : Patient as patient where (extension.where(url in ('http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex' | 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex' | 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-genderIdentity' | 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-tribal-affiliation')).exists()) -> body.component as sectionComponent, sectionComponent.section as cdaSection then SocialSectionFromPatient(patient, cdaSection);
+        };
+      };
+    };
   };
 }
 
@@ -108,14 +137,60 @@ group Section(source section, source bundle : Bundle, target cdaSection : Sectio
       coding.code as c where (c = '48765-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.6.1', template.extension = '2015-08-01';
       coding.code as c where (c = '11450-4') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.5.1', template.extension = '2015-08-01';
       coding.code as c where (c = '75310-3') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.58', template.extension = '2015-08-01';
+      coding.code as c where (c = '42346-7') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.44', template.extension = '2015-08-01';
+      coding.code as c where (c = '42349-1') -> cdaSection.templateId as template, template.root = '1.3.6.1.4.1.19376.1.5.3.1.3.1', template.extension = '2014-06-09';
+      coding.code as c where (c = '51848-0') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.8';
+      coding.code as c where (c = '51847-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.9', template.extension = '2014-06-09';
+      coding.code as c where (c = '46241-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.43', template.extension = '2015-08-01';
+      coding.code as c where (c = '11535-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.24', template.extension = '2015-08-01';
+      coding.code as c where (c = '46264-8') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.23', template.extension = '2014-06-09';
+      coding.code as c where (c = '10157-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.15', template.extension = '2015-08-01';
+      coding.code as c where (c = '47420-5') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.14', template.extension = '2014-06-09';
+      coding.code as c where (c = '10190-7') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.56', template.extension = '2015-08-01';
+      coding.code as c where (c = '18776-5') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.10', template.extension = '2014-06-09';
+      coding.code as c where (c = '61146-7') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.60';
+      coding.code as c where (c = '10183-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.11.1', template.extension = '2015-08-01';
       coding.code as c where (c = '10160-0') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.1.1', template.extension = '2014-06-09';
       coding.code as c where (c = '11369-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.2.1', template.extension = '2015-08-01';
       coding.code as c where (c = '30954-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.3.1', template.extension = '2015-08-01';
       coding.code as c where (c = '8716-3') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.4.1', template.extension = '2015-08-01';
       coding.code as c where (c = '47519-4') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.7.1', template.extension = '2014-06-09';
+      // Narrative-only sections (8648-8 is both Hospital Course and Course of Care: left without one).
+      coding.code as c where (c = '10154-3') -> cdaSection.templateId as template, template.root = '1.3.6.1.4.1.19376.1.5.3.1.1.13.2.1';
+      coding.code as c where (c = '46239-0') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.13';
+      coding.code as c where (c = '10210-3') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.2.5';
+      coding.code as c where (c = '10164-2') -> cdaSection.templateId as template, template.root = '1.3.6.1.4.1.19376.1.5.3.1.3.4';
+      coding.code as c where (c = '18841-7') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.42';
+      coding.code as c where (c = '8653-8') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.41';
+      coding.code as c where (c = '10184-0') -> cdaSection.templateId as template, template.root = '1.3.6.1.4.1.19376.1.5.3.1.3.26';
+      coding.code as c where (c = '11493-4') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.16';
+      coding.code as c where (c = '11329-0') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.39';
+      coding.code as c where (c = '61149-1') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.21.2.1';
+      coding.code as c where (c = '10216-0') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.7.12';
+      coding.code as c where (c = '10223-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.7.14';
+      coding.code as c where (c = '10218-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.35';
+      coding.code as c where (c = '29554-3') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.27';
+      coding.code as c where (c = '59775-7') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.18.2.12';
+      coding.code as c where (c = '59770-8') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.18.2.9';
+      coding.code as c where (c = '59771-6') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.40';
+      coding.code as c where (c = '59773-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.31';
+      coding.code as c where (c = '29299-5') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.12';
+      coding.code as c where (c = '10187-3') -> cdaSection.templateId as template, template.root = '1.3.6.1.4.1.19376.1.5.3.1.3.18';
+      coding.code as c where (c = '61150-9') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.21.2.2';
+      coding.code as c where (c = '11537-8') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.7.13';
+      coding.code as c where (c = '29762-2') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.17', template.extension = '2015-08-01';
+      coding.code as c where (c = '46240-8') -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.22.1', template.extension = '2015-08-01';
     };
   };
-  section.code as code -> cdaSection.code = create('CE') as c then CodeableConceptToCD(code, c);
+  // A section of notes only: the Notes Section.
+  section where (entry.exists() and entry.reference.all($this in %bundle.entry.where(resource is DocumentReference).fullUrl)) -> cdaSection.templateId as template, template.root = '2.16.840.1.113883.10.20.22.2.65', template.extension = '2026-05-01';
+  section.code as sectionCode -> cdaSection.code = create('CE') as c then {
+    sectionCode then CodeableConceptToCD(sectionCode, c);
+    // The Discharge Medications section's code carries the 75311-1 translation.
+    sectionCode where (coding.where(system = 'http://loinc.org' and code = '10183-2').exists() and coding.where(system = 'http://loinc.org' and code = '75311-1').empty()) -> c.translation as translation, translation.code = '75311-1', translation.codeSystem = '2.16.840.1.113883.6.1', translation.displayName = 'Discharge medications';
+    sectionCode where (coding.where(system = 'http://loinc.org' and code = '46241-6').exists() and coding.where(system = 'http://loinc.org' and code = '42347-5').empty()) -> c.translation as translation, translation.code = '42347-5', translation.codeSystem = '2.16.840.1.113883.6.1', translation.displayName = 'Admission diagnosis (narrative)';
+    sectionCode where (coding.where(system = 'http://loinc.org' and code = '11535-2').exists() and coding.where(system = 'http://loinc.org' and code = '78375-3').empty()) -> c.translation as translation, translation.code = '78375-3', translation.codeSystem = '2.16.840.1.113883.6.1', translation.displayName = 'Discharge diagnosis Narrative';
+  };
   section.title as title -> cdaSection.title as t, t.xmlText = title;
   section.text as text then {
     text.div as div -> cdaSection.text = div;
@@ -123,15 +198,50 @@ group Section(source section, source bundle : Bundle, target cdaSection : Sectio
   section.entry as ref then {
     bundle.entry as entry where (fullUrl = %ref.reference) then {
       entry.resource : AllergyIntolerance as allergy -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then AllergyToConcernAct(allergy, bundle, act);
-      entry.resource : Condition as condition -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then ConditionToConcernAct(condition, bundle, act);
-      entry.resource : MedicationRequest as request -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.substanceAdministration as activity then MedicationRequestToActivity(request, bundle, activity);
+      entry.resource : Condition as condition where (%section.code.coding.where(system = 'http://loinc.org' and code = '75310-3').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then ConditionToHealthConcernAct(condition, bundle, act);
+      entry.resource : Condition as condition where (%section.code.coding.where(system = 'http://loinc.org' and code = '46241-6').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then ConditionToDiagnosisAct(condition, bundle, '2.16.840.1.113883.10.20.22.4.34', '46241-6', 'Hospital admission diagnosis', act);
+      entry.resource : Condition as condition where (%section.code.coding.where(system = 'http://loinc.org' and code = '11535-2').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then ConditionToDiagnosisAct(condition, bundle, '2.16.840.1.113883.10.20.22.4.33', '11535-2', 'Hospital discharge diagnosis', act);
+      entry.resource : Condition as condition where (%section.code.coding.where(system = 'http://loinc.org' and code in ('75310-3' | '46241-6' | '11535-2')).empty()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then ConditionToConcernAct(condition, bundle, act);
+      // An admission medication: the Admission Medication act around the Medication Activity.
+      entry.resource : MedicationRequest as request where (%section.code.coding.where(system = 'http://loinc.org' and code = '42346-7').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then {
+        request -> act.classCode = 'ACT', act.moodCode = 'EVN';
+        request -> act.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.36', template.extension = '2014-06-09';
+        request -> act.code as code, code.code = '42346-7', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Medications on admission';
+        request -> act.statusCode as sc, sc.code = 'completed';
+        request -> act.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.substanceAdministration as activity then MedicationRequestToActivity(request, bundle, activity);
+      };
+      entry.resource : MedicationRequest as request where (%section.code.coding.where(system = 'http://loinc.org' and code = '42346-7').empty() and category.coding.where(system = 'http://terminology.hl7.org/CodeSystem/medicationrequest-category' and code = 'discharge').empty()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.substanceAdministration as activity then MedicationRequestToActivity(request, bundle, activity);
+      // A discharge medication: the Discharge Medication act around the Medication Activity.
+      entry.resource : MedicationRequest as request where (%section.code.coding.where(system = 'http://loinc.org' and code = '42346-7').empty() and category.coding.where(system = 'http://terminology.hl7.org/CodeSystem/medicationrequest-category' and code = 'discharge').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then {
+        request -> act.classCode = 'ACT', act.moodCode = 'EVN';
+        request -> act.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.35', template.extension = '2016-03-01';
+        request -> act.code as code, code.code = '10183-2', code.codeSystem = '2.16.840.1.113883.6.1', code.displayName = 'Hospital discharge medication', code.translation as translation, translation.code = '75311-1', translation.codeSystem = '2.16.840.1.113883.6.1', translation.displayName = 'Discharge medications';
+        request -> act.statusCode as sc, sc.code = 'completed';
+        request -> act.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.substanceAdministration as activity then MedicationRequestToActivity(request, bundle, activity);
+      };
       entry.resource : Immunization as immunization -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.substanceAdministration as activity then ImmunizationToActivity(immunization, bundle, activity);
       entry.resource : DiagnosticReport as report -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.organizer as organizer then ReportToOrganizer(report, bundle, organizer);
       entry.resource : Observation as panel where (category.coding.where(code = 'vital-signs').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.organizer as organizer then PanelToOrganizer(panel, bundle, organizer);
       entry.resource : Procedure as procedure -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.procedure as cdaProcedure then ProcedureToCda(procedure, bundle, cdaProcedure);
+      entry.resource : Observation as observation where (category.coding.where(code in ('vital-signs' | 'functional-status' | 'cognitive-status')).empty() and (%section.code.coding.where(system = 'http://loinc.org' and code = '29762-2').exists() or category.coding.where(code in ('social-history' | 'survey')).exists())) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.observation as cdaObservation then SocialToCda(observation, bundle, cdaObservation);
+      entry.resource : Observation as observation where (category.coding.where(system = 'http://hl7.org/fhir/us/core/CodeSystem/us-core-category' and code = 'functional-status').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV' then StatusEntry(observation, bundle, 'functional', cdaEntry);
+      entry.resource : Observation as observation where (category.coding.where(system = 'http://hl7.org/fhir/us/core/CodeSystem/us-core-category' and code = 'cognitive-status').exists()) -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV' then StatusEntry(observation, bundle, 'cognitive', cdaEntry);
+      entry.resource : DocumentReference as note -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.act as act then DocumentReferenceToNote(note, bundle, act);
+      entry.resource : Device as device -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.supply as supply then DeviceToSupply(device, supply);
+      entry.resource : FamilyMemberHistory as member -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.organizer as organizer then FamilyMemberToOrganizer(member, bundle, organizer);
+      entry.resource : Goal as goal -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.observation as observation then GoalToObservation(goal, bundle, observation);
+      entry.resource : ServiceRequest as request -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.procedure as procedure then ServiceRequestToPlanned(request, bundle, procedure);
+      entry.resource : Encounter as encounter -> cdaSection.entry as cdaEntry, cdaEntry.typeCode = 'DRIV', cdaEntry.encounter as cdaEncounter then EncounterToActivity(encounter, bundle, cdaEncounter);
+    };
+  };
+  // The Social History section holds the Patient's birth sex, sex, gender identity and tribal
+  // affiliation.
+  section where (code.coding.where(system = 'http://loinc.org' and code = '29762-2').exists()) then {
+    bundle.entry first as entry where (resource is Patient) then {
+      entry.resource : Patient as patient then PatientToSocialEntries(patient, cdaSection);
     };
   };
   // A section whose template requires entries and that has none says so.
-  section where (entry.empty() and code.coding.where(system = 'http://loinc.org' and code in ('48765-2' | '11450-4' | '75310-3' | '10160-0' | '11369-6' | '30954-2' | '8716-3' | '47519-4')).exists()) -> cdaSection.nullFlavor = 'NI';
+  section where (entry.empty() and code.coding.where(system = 'http://loinc.org' and code in ('48765-2' | '11450-4' | '75310-3' | '10160-0' | '11369-6' | '30954-2' | '8716-3' | '47519-4' | '46240-8' | '10183-2' | '61146-7')).exists()) -> cdaSection.nullFlavor = 'NI';
   section.section as nested -> cdaSection.component as component, component.section as cdaNested then Section(nested, bundle, cdaNested);
 }

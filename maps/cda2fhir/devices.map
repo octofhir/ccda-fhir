@@ -1,0 +1,100 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-devices-to-fhir'
+/// name = 'CdaDevicesToFhir'
+/// title = 'C-CDA devices to FHIR Device'
+/// status = 'active'
+/// description = 'Product Instance (with its UDI Organizer) to Device — US Core 6.1.0 implantable device for implants, the products of procedures — and Non-Medicinal Supply Activities as Devices. C-CDA on FHIR 2.0.0 has no table for devices.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-devices-to-fhir" = "CdaDevicesToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ParticipantRole" alias ParticipantRole as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/NonMedicinalSupplyActivity" alias NonMedicinalSupplyActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProductInstance" alias ProductInstance as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/UDIOrganizer" alias UDIOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/DeviceIdentifierObservation" alias DeviceIdentifierObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/LotOrBatchNumberObservation" alias LotOrBatchNumberObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SerialNumberObservation" alias SerialNumberObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ManufacturingDateObservation" alias ManufacturingDateObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ExpirationDateObservation" alias ExpirationDateObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/DistinctIdentificationCodeObservation" alias DistinctIdentificationCodeObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ModelNumberObservation" alias ModelNumberObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/BrandNameObservation" alias BrandNameObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CompanyNameObservation" alias CompanyNameObservation as source
+uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+
+// A supply of equipment: a Device for each product it names.
+group SupplyDevices(source supply, target compositionSection, target bundle : Bundle, source patientId : string) {
+  supply.participant as participant where (typeCode = 'PRD' or typeCode = 'DEV') then {
+    participant.participantRole : ProductInstance as role -> bundle.entry as resourceEntry, resourceEntry.resource = create('Device') as device, uuid() as id, device.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), device.patient as patient, patient.reference = append('urn:uuid:', patientId) then ProductInstanceToDevice(role, supply, device);
+  };
+}
+
+// A product instance: the device's type, its UDI (the FDA id: the human-readable form, the
+// device identifier after (01)), other ids, and what the UDI Organizer of `owner` says.
+group ProductInstanceToDevice(source role : ParticipantRole, source owner, target device : Device) {
+  role.id as id where (root = '2.16.840.1.113883.3.3719' and extension.exists()) -> device.udiCarrier as carrier then {
+    id.extension as hrf -> carrier.carrierHRF = hrf;
+    id.extension as hrf where (hrf.startsWith('(01)')) -> carrier.deviceIdentifier = evaluate(hrf, $this.substring(4, 14));
+    owner.entryRelationship as relationship then {
+      relationship.organizer : UDIOrganizer as udi where (%id.extension.startsWith('(01)').not()) then {
+        udi.component as component then {
+          component.observation : DeviceIdentifierObservation as observation then {
+            observation.value as value then {
+              value.extension as di -> carrier.deviceIdentifier = di;
+            };
+          };
+        };
+      };
+    };
+  };
+  role.id as id where (iif(root = '2.16.840.1.113883.3.3719', false, true)) -> device.identifier as i then IIToIdentifier(id, i);
+  role.playingDevice as playing then {
+    playing.code as cd where (cd.code.exists() or cd.originalText.xmlText.exists()) -> device.type as cc then CDToCodeableConcept(cd, cc);
+    playing.manufacturerModelName as model where (%owner.entryRelationship.organizer.component.observation.where(hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.317')).empty()) then {
+      model.xmlText as t where (t.trim().length() > 0) -> device.modelNumber = evaluate(t, $this.trim());
+    };
+  };
+  role where (playingDevice.code.where(code.exists() or originalText.xmlText.exists()).empty()) -> device.type as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  role.scopingEntity as scoping then {
+    scoping.desc as desc where (%owner.entryRelationship.organizer.component.observation.where(hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.303')).empty()) then {
+      desc.xmlText as t where (t.trim().length() > 0) -> device.manufacturer = evaluate(t, $this.trim());
+    };
+  };
+  owner.entryRelationship as relationship then {
+    relationship.organizer : UDIOrganizer as udi then UdiOrganizerToDevice(udi, device);
+  };
+}
+
+// The production identifiers and labels of the UDI Organizer.
+group UdiOrganizerToDevice(source udi : Organizer, target device : Device) {
+  udi.component as component then {
+    component.observation : LotOrBatchNumberObservation as observation then {
+      observation.value as value then { value.xmlText as t where (t.trim().length() > 0) -> device.lotNumber = evaluate(t, $this.trim()); };
+    };
+    component.observation : SerialNumberObservation as observation then {
+      observation.value as value then { value.xmlText as t where (t.trim().length() > 0) -> device.serialNumber = evaluate(t, $this.trim()); };
+    };
+    component.observation : DistinctIdentificationCodeObservation as observation then {
+      observation.value as value then { value.xmlText as t where (t.trim().length() > 0) -> device.distinctIdentifier = evaluate(t, $this.trim()); };
+    };
+    component.observation : ModelNumberObservation as observation then {
+      observation.value as value then { value.xmlText as t where (t.trim().length() > 0) -> device.modelNumber = evaluate(t, $this.trim()); };
+    };
+    component.observation : CompanyNameObservation as observation then {
+      observation.value as value then { value.xmlText as t where (t.trim().length() > 0) -> device.manufacturer = evaluate(t, $this.trim()); };
+    };
+    component.observation : BrandNameObservation as observation then {
+      observation.value as value then { value.xmlText as t where (t.trim().length() > 0) -> device.deviceName as name, name.name = evaluate(t, $this.trim()), name.type = 'udi-label-name'; };
+    };
+    component.observation : ManufacturingDateObservation as observation then {
+      observation.value as value -> device.manufactureDate = create('dateTime') as date then TSToDateTime(value, date);
+    };
+    component.observation : ExpirationDateObservation as observation then {
+      observation.value as value -> device.expirationDate = create('dateTime') as date then TSToDateTime(value, date);
+    };
+  };
+}

@@ -14,6 +14,8 @@ uses "http://hl7.org/cda/stds/core/StructureDefinition/CustodianOrganization" al
 uses "http://hl7.org/cda/stds/core/StructureDefinition/AuthoringDevice" alias AuthoringDevice as source
 uses "http://hl7.org/cda/stds/core/StructureDefinition/Author" alias Author as source
 uses "http://hl7.org/cda/stds/core/StructureDefinition/Performer2" alias Performer2 as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/ParticipantRole" alias ParticipantRole as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/HealthCareFacility" alias HealthCareFacility as source
 uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
 uses "http://hl7.org/fhir/StructureDefinition/Reference" alias Reference as target
 uses "http://hl7.org/fhir/StructureDefinition/Annotation" alias Annotation as target
@@ -22,6 +24,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Practitioner" alias Practitioner a
 uses "http://hl7.org/fhir/StructureDefinition/PractitionerRole" alias PractitionerRole as target
 uses "http://hl7.org/fhir/StructureDefinition/Organization" alias Organization as target
 uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
+uses "http://hl7.org/fhir/StructureDefinition/Location" alias Location as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
 
@@ -62,7 +65,7 @@ group OrganizationToOrganization(source src : CdaOrganization, target tgt : Orga
       item.xmlText as t where (t.trim().length() > 0) -> tgt.name = evaluate(t, $this.trim());
     };
   };
-  src.telecom as telecom -> tgt.telecom as t then TELToContactPoint(telecom, t);
+  src.telecom as telecom -> tgt.telecom as t then TELToOrganizationContactPoint(telecom, t);
   src.addr as addr -> tgt.address as a then ADToAddress(addr, a);
   src -> tgt.active = true;
 }
@@ -74,7 +77,7 @@ group CustodianOrganizationToOrganization(source src : CustodianOrganization, ta
       item.xmlText as t where (t.trim().length() > 0) -> tgt.name = evaluate(t, $this.trim());
     };
   };
-  src.telecom as telecom -> tgt.telecom as t then TELToContactPoint(telecom, t);
+  src.telecom as telecom -> tgt.telecom as t then TELToOrganizationContactPoint(telecom, t);
   src.addr as addr -> tgt.address as a then ADToAddress(addr, a);
   src -> tgt.active = true;
 }
@@ -86,19 +89,109 @@ group CustodianOrganizationToOrganization(source src : CustodianOrganization, ta
 group AuthorReference(source author : Author, target ref : Reference, target bundle : Bundle) {
   author.assignedAuthor as assigned where (assignedPerson.exists() and code.empty() and representedOrganization.empty()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then AssignedAuthorToPractitioner(assigned, practitioner);
   author.assignedAuthor as assigned where (assignedPerson.exists() and (code.exists() or representedOrganization.exists())) -> bundle.entry as roleEntry, roleEntry.resource = create('PractitionerRole') as role, uuid() as roleId, role.id = roleId, roleEntry.fullUrl = append('urn:uuid:', roleId), ref.reference = append('urn:uuid:', roleId) then AssignedAuthorToRole(assigned, role, bundle);
+  // An author named only by its id (the person is described elsewhere in the document): a
+  // Practitioner with that identifier, merged with the one described after the maps run.
+  author.assignedAuthor as assigned where (assignedPerson.empty() and assignedAuthoringDevice.empty() and representedOrganization.empty() and id.where(root.exists() or extension.exists()).exists()) then {
+    assigned where (code.empty()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then IdOnlyPractitioner(assigned, practitioner);
+    assigned where (code.exists()) -> bundle.entry as roleEntry, roleEntry.resource = create('PractitionerRole') as role, uuid() as roleId, role.id = roleId, roleEntry.fullUrl = append('urn:uuid:', roleId), ref.reference = append('urn:uuid:', roleId) then AssignedAuthorToRole(assigned, role, bundle);
+  };
 }
 
 group AssignedAuthorToRole(source assigned : AssignedAuthor, target role : PractitionerRole, target bundle : Bundle) {
-  assigned -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), role.practitioner as ref, ref.reference = append('urn:uuid:', id) then AssignedAuthorToPractitioner(assigned, practitioner);
+  assigned -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), role.practitioner as ref, ref.reference = append('urn:uuid:', id) then {
+    assigned then AssignedAuthorToPractitioner(assigned, practitioner);
+    assigned where (assignedPerson.empty()) then UnnamedPractitioner(assigned, practitioner);
+  };
   assigned.code as code -> role.code as cc then CDToCodeableConcept(code, cc);
   assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), role.organization as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
 }
 
 // A reference to the Practitioner a performer is.
 group PerformerReference(source performer : Performer2, target ref : Reference, target bundle : Bundle) {
-  performer.assignedEntity as assigned where (assignedPerson.exists()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then AssignedEntityToPractitioner(assigned, practitioner);
-  performer.assignedEntity as assigned where (assignedPerson.empty()) then {
+  performer.assignedEntity as assigned then AssignedEntityReference(assigned, ref, bundle);
+}
+
+// A reference to who an assigned entity is (the participations mapping): the Practitioner; a
+// PractitionerRole with the Practitioner, the role code and the Organization when there is a
+// code or an organization; the Organization alone when there is no person; a Practitioner with
+// only its identifier when the entity is named by its id.
+group AssignedEntityReference(source assigned : AssignedEntity, target ref : Reference, target bundle : Bundle) {
+  assigned where (assignedPerson.exists() and code.empty() and representedOrganization.empty()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then AssignedEntityToPractitioner(assigned, practitioner);
+  assigned where (assignedPerson.exists() and (code.exists() or representedOrganization.exists())) -> bundle.entry as roleEntry, roleEntry.resource = create('PractitionerRole') as role, uuid() as roleId, role.id = roleId, roleEntry.fullUrl = append('urn:uuid:', roleId), ref.reference = append('urn:uuid:', roleId) then AssignedEntityToRole(assigned, role, bundle);
+  assigned where (assignedPerson.empty()) then {
     assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+  };
+  assigned where (assignedPerson.empty() and representedOrganization.empty() and id.where(root.exists() or extension.exists()).exists()) then {
+    assigned where (code.empty()) -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), ref.reference = append('urn:uuid:', id) then IdOnlyPractitioner(assigned, practitioner);
+    assigned where (code.exists()) -> bundle.entry as roleEntry, roleEntry.resource = create('PractitionerRole') as role, uuid() as roleId, role.id = roleId, roleEntry.fullUrl = append('urn:uuid:', roleId), ref.reference = append('urn:uuid:', roleId) then AssignedEntityToRole(assigned, role, bundle);
+  };
+}
+
+group AssignedEntityToRole(source assigned : AssignedEntity, target role : PractitionerRole, target bundle : Bundle) {
+  assigned -> bundle.entry as entry, entry.resource = create('Practitioner') as practitioner, uuid() as id, practitioner.id = id, entry.fullUrl = append('urn:uuid:', id), role.practitioner as ref, ref.reference = append('urn:uuid:', id) then {
+    assigned then AssignedEntityToPractitioner(assigned, practitioner);
+    assigned where (assignedPerson.empty()) then UnnamedPractitioner(assigned, practitioner);
+  };
+  assigned.code as code -> role.code as cc then CDToCodeableConcept(code, cc);
+  assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), role.organization as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+}
+
+// A practitioner known only by its ids (and address, telecom).
+group IdOnlyPractitioner(source assigned, target practitioner : Practitioner) {
+  assigned.id as id where (root.exists() or extension.exists()) -> practitioner.identifier as i then IIToIdentifier(id, i);
+  assigned.addr as addr -> practitioner.address as a then ADToAddress(addr, a);
+  assigned.telecom as telecom -> practitioner.telecom as t then TELToContactPoint(telecom, t);
+  assigned then UnnamedPractitioner(assigned, practitioner);
+}
+
+// US Core needs a name: one the document does not give is data-absent.
+group UnnamedPractitioner(source assigned, target practitioner : Practitioner) {
+  assigned -> practitioner.name as name, name.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+}
+
+// A participant that is a place (typeCode LOC, the Service Delivery Location) → US Core
+// Location: the role's id, code (the kind of place), address and telecom, the playing entity's
+// name. US Core needs a name: the code's name stands in when the entity has none.
+group ParticipantRoleToLocation(source role : ParticipantRole, target fhirLocation : Location) {
+  role -> fhirLocation.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-location';
+  role.id as id -> fhirLocation.identifier as i then IIToIdentifier(id, i);
+  role.code as code -> fhirLocation.type as cc then CDToCodeableConcept(code, cc);
+  role.addr first as addr -> fhirLocation.address as a then ADToAddress(addr, a);
+  role.telecom as telecom -> fhirLocation.telecom as t then TELToContactPoint(telecom, t);
+  role.playingEntity as entity then {
+    entity.name first as name then {
+      name.item as item then {
+        item.xmlText as t where (t.trim().length() > 0) -> fhirLocation.name = evaluate(t, $this.trim());
+      };
+    };
+  };
+  role where (playingEntity.name.item.xmlText.where(trim().length() > 0).empty()) then {
+    role.code as code then {
+      code.displayName as d -> fhirLocation.name = d;
+    };
+    role where (code.displayName.empty()) -> fhirLocation.name as name, name.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  };
+}
+
+// The header encounter's facility → US Core Location: the facility's ids and code, the place's
+// name and address.
+group HealthCareFacilityToLocation(source facility : HealthCareFacility, target fhirLocation : Location) {
+  facility -> fhirLocation.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-location';
+  facility.id as id -> fhirLocation.identifier as i then IIToIdentifier(id, i);
+  facility.code as code -> fhirLocation.type as cc then CDToCodeableConcept(code, cc);
+  facility.location as place then {
+    place.name as name then {
+      name.item as item then {
+        item.xmlText as t where (t.trim().length() > 0) -> fhirLocation.name = evaluate(t, $this.trim());
+      };
+    };
+    place.addr as addr -> fhirLocation.address as a then ADToAddress(addr, a);
+  };
+  facility where (location.name.item.xmlText.where(trim().length() > 0).empty()) then {
+    facility.code as code then {
+      code.displayName as d -> fhirLocation.name = d;
+    };
+    facility where (code.displayName.empty()) -> fhirLocation.name as name, name.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
   };
 }
 

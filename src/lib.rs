@@ -246,7 +246,12 @@ impl Converter {
                 .push(Loss::new(Stage::Map, "", warning.clone()));
         }
         let mut bundle = transformed.target;
+        // Shared participants first, so the merged encounters' participants compare equal.
         prepare::deduplicate(&mut bundle);
+        prepare::merge_by_identifier(&mut bundle);
+        // Roles of merged practitioners can now be the same.
+        prepare::deduplicate(&mut bundle);
+        prepare::resolve_encounter_identifiers(&mut bundle);
         for loss in prepare::narratives_to_xhtml(&mut bundle) {
             report.losses.push(loss);
         }
@@ -268,7 +273,8 @@ impl Converter {
                 .losses
                 .push(Loss::new(Stage::Map, "", warning.clone()));
         }
-        let document = transformed.target;
+        let mut document = transformed.target;
+        prepare::link_note_narratives(&mut document);
         let written = fml_xml::write(&document, &self.model, CLINICAL_DOCUMENT)
             .map_err(|e| Error::new(e.to_string()))?;
         for issue in &written.issues {

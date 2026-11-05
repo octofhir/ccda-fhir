@@ -1,0 +1,141 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-plans-to-fhir'
+/// name = 'CdaPlansToFhir'
+/// title = 'C-CDA goals and plan of treatment to US Core'
+/// status = 'active'
+/// description = 'Goal Observation to US Core 6.1.0 Goal; planned observations, procedures, encounters and acts of the Plan of Treatment to US Core ServiceRequest; planned medications to MedicationRequest. C-CDA on FHIR 2.0.0 has no table for these: the maps follow the templates (C-CDA 5.0.0, and the planned observation and act of earlier releases) and the US Core profiles.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-plans-to-fhir" = "CdaPlansToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/GoalsSection" alias GoalsSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PlanofTreatmentSection" alias PlanofTreatmentSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/GoalObservation" alias GoalObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PlannedEncounter" alias PlannedEncounter as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ReferralAct" alias ReferralAct as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PlannedProcedure" alias PlannedProcedure as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/PlannedMedicationActivity" alias PlannedMedicationActivity as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/Indication" alias Indication as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/CommentActivity" alias CommentActivity as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/PQ" alias PQ as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/IVL-PQ" alias IVL_PQ as source
+uses "http://hl7.org/fhir/StructureDefinition/Goal" alias Goal as target
+uses "http://hl7.org/fhir/StructureDefinition/ServiceRequest" alias ServiceRequest as target
+uses "http://hl7.org/fhir/StructureDefinition/MedicationRequest" alias MedicationRequest as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-medications-to-fhir"
+
+// Goals, in the Goals section or the Plan of Treatment.
+group GoalsInSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.observation : GoalObservation as goal -> bundle.entry as resourceEntry, resourceEntry.resource = create('Goal') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then GoalObservationToGoal(goal, resource, bundle);
+  };
+}
+
+// A goal: what it is (a coded value, else the code, else its text), its target when the value is
+// a quantity, when it starts and is due, its state, who expressed it.
+group GoalObservationToGoal(source goal : CdaObservation, target resource : Goal, target bundle : Bundle) {
+  goal -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-goal';
+  goal.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  goal -> resource.lifecycleStatus = evaluate(goal, iif(statusCode.code = 'completed', 'completed', iif(statusCode.code in ('cancelled' | 'aborted'), 'cancelled', iif(statusCode.code in ('held' | 'suspended'), 'on-hold', iif(statusCode.code = 'new', 'proposed', iif(statusCode.code = 'nullified', 'entered-in-error', 'active'))))));
+  goal.value : CD as value where (code.exists() or originalText.xmlText.exists()) -> resource.description as cc then CDToCodeableConcept(value, cc);
+  goal where (value.where(code.exists() or originalText.xmlText.exists()).empty()) then {
+    goal.code as cd where (cd.code.exists() or cd.translation.exists() or cd.originalText.xmlText.exists()) -> resource.description as cc then CDToCodeableConcept(cd, cc);
+    goal where (code.code.empty() and code.translation.empty() and code.originalText.xmlText.empty()) then {
+      goal.text as text then {
+        text.xmlText as t where (t.trim().length() > 0) -> resource.description as cc, cc.text = evaluate(t, $this.trim());
+      };
+      goal where (text.xmlText.where(trim().length() > 0).empty()) -> resource.description as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+    };
+  };
+  goal.value : PQ as pq where (pq.value.exists()) -> resource.target as goalTarget then {
+    goal.code as code -> goalTarget.measure as cc then CDToCodeableConcept(code, cc);
+    pq -> goalTarget.detail = create('Quantity') as q then PQToQuantity(pq, q);
+    goal.effectiveTime as time then {
+      time.high as high where (value.exists()) -> goalTarget.due = create('date') as due then TSToDate(high, due);
+    };
+  };
+  goal.value : IVL_PQ as range where (low.value.exists() or high.value.exists()) -> resource.target as goalTarget then {
+    goal.code as code -> goalTarget.measure as cc then CDToCodeableConcept(code, cc);
+    range -> goalTarget.detail = create('Range') as r then {
+      range.low as low -> r.low as q then PQToQuantity(low, q);
+      range.high as high -> r.high as q then PQToQuantity(high, q);
+    };
+    goal.effectiveTime as time then {
+      time.high as high where (value.exists()) -> goalTarget.due = create('date') as due then TSToDate(high, due);
+    };
+  };
+  // Due without a quantity target: a target with only its date.
+  goal where (value.where(value.exists() or low.value.exists() or high.value.exists()).empty()) then {
+    goal.effectiveTime as time then {
+      time.high as high where (value.exists()) -> resource.target as goalTarget, goalTarget.due = create('date') as due then TSToDate(high, due);
+    };
+  };
+  goal.effectiveTime as time then {
+    time.low as low where (value.exists()) -> resource.start = create('date') as start then TSToDate(low, start);
+    time.value as v where (%time.low.empty()) -> resource.start = create('date') as start then TSToDate(time, start);
+  };
+  goal.author last as author -> resource.expressedBy as ref then AuthorReference(author, ref, bundle);
+  goal.entryRelationship as relationship then {
+    relationship.act : CommentActivity as comment -> resource.note as note then CommentToAnnotation(comment, note);
+  };
+}
+
+// The Plan of Treatment: its goals, and what is planned.
+group PlanOfTreatmentSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section then GoalsInSection(section, compositionSection, bundle, patientId);
+  section.entry as entry then {
+    // Planned Observation (…4.44) and Planned Act (…4.39) of C-CDA 2.1, Planned Procedure,
+    // Planned Encounter: a ServiceRequest each.
+    entry.observation as planned where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.44')) then PlannedToRequest(planned, compositionSection, bundle, patientId);
+    entry.act as planned where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.39')) then PlannedToRequest(planned, compositionSection, bundle, patientId);
+    entry.procedure : PlannedProcedure as planned then PlannedToRequest(planned, compositionSection, bundle, patientId);
+    entry.encounter : PlannedEncounter as planned then PlannedToRequest(planned, compositionSection, bundle, patientId);
+    // Planned medications: MedicationRequests of the plan.
+    entry.substanceAdministration : PlannedMedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      activity then MedicationRequest(activity, request, bundle);
+      activity -> request.intent = evaluate(activity, iif(moodCode = 'RQO', 'order', iif(moodCode = 'PRP', 'proposal', 'plan')));
+    };
+  };
+}
+
+group PlannedToRequest(source planned, target compositionSection, target bundle : Bundle, source patientId : string) {
+  planned -> bundle.entry as resourceEntry, resourceEntry.resource = create('ServiceRequest') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then PlannedServiceRequest(planned, resource, bundle);
+}
+
+// Something planned → US Core ServiceRequest. The intent follows the mood (an intent is a plan,
+// a request an order, a proposal a proposal), the status the act's status.
+group PlannedServiceRequest(source planned, target resource : ServiceRequest, target bundle : Bundle) {
+  planned -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-servicerequest';
+  planned.id as id -> resource.identifier as i then IIToIdentifier(id, i);
+  planned -> resource.status = evaluate(planned, iif(statusCode.code = 'active', 'active', iif(statusCode.code = 'completed', 'completed', iif(statusCode.code in ('cancelled' | 'aborted'), 'revoked', iif(statusCode.code in ('held' | 'suspended'), 'on-hold', iif(statusCode.code = 'new', 'draft', iif(statusCode.code = 'nullified', 'entered-in-error', 'unknown')))))));
+  planned -> resource.intent = evaluate(planned, iif(moodCode = 'RQO', 'order', iif(moodCode = 'PRP', 'proposal', 'plan')));
+  planned.code as cd where (cd.code.exists() or cd.translation.exists() or cd.originalText.xmlText.exists()) -> resource.code as cc then CDToCodeableConcept(cd, cc);
+  planned where (code.where(code.exists() or translation.exists() or originalText.xmlText.exists()).empty()) -> resource.code as cc, cc.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+  planned.effectiveTime as time then {
+    time.value as v -> resource.occurrence = create('dateTime') as date then TSToDateTime(time, date);
+    time where (value.empty() and (low.value.exists() or high.value.exists())) -> resource.occurrence = create('Period') as period then IVLTSToPeriod(time, period);
+  };
+  planned.author first as author then {
+    author.time as time where (value.exists()) -> resource.authoredOn = create('dateTime') as date then TSToDateTime(time, date);
+  };
+  planned.author last as author -> resource.requester as ref then AuthorReference(author, ref, bundle);
+  planned.performer as performer -> resource.performer as ref then PerformerReference(performer, ref, bundle);
+  planned.entryRelationship as relationship then {
+    relationship.observation : Indication as indication then {
+      indication.value as value -> resource.reasonCode as cc then CDToCodeableConcept(value, cc);
+    };
+    relationship.act : CommentActivity as comment -> resource.note as note then CommentToAnnotation(comment, note);
+  };
+}
+
+// Reason for Referral: the narrative, and the referrals (Patient Referral Act) as ServiceRequests.
+group ReferralSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
+  section.entry as entry then {
+    entry.act : ReferralAct as referral then PlannedToRequest(referral, compositionSection, bundle, patientId);
+  };
+}

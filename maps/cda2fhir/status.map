@@ -1,0 +1,85 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-status-to-fhir'
+/// name = 'CdaStatusToFhir'
+/// title = 'C-CDA functional and mental status to US Core'
+/// status = 'active'
+/// description = 'Functional Status and Mental Status sections to US Core 6.1.0 Observations of the functional-status and cognitive-status categories (organizers as panels with their members, assessment scales as screening and assessment), and the functional and cognitive status problems of C-CDA 2.1 to Conditions. C-CDA on FHIR 2.0.0 has no table for these: the maps follow the templates and the US Core profiles.'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-status-to-fhir" = "CdaStatusToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Section" alias Section as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Observation" alias CdaObservation as source
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organizer" alias Organizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FunctionalStatusSection" alias FunctionalStatusSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MentalStatusSection" alias MentalStatusSection as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FunctionalStatusOrganizer" alias FunctionalStatusOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/FunctionalStatusObservation" alias FunctionalStatusObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MentalStatusOrganizer" alias MentalStatusOrganizer as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/MentalStatusObservation" alias MentalStatusObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/SensoryStatus" alias SensoryStatus as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/AssessmentScaleObservation" alias AssessmentScaleObservation as source
+uses "http://hl7.org/cda/us/ccda/StructureDefinition/ProblemObservation" alias ProblemObservation as source
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as target
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-problems-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-social-to-fhir"
+
+// A status section: organizers, observations and the problems of C-CDA 2.1 (functional status
+// problem …4.68, cognitive status problem …4.73). `category` is the US Core category code
+// (functional-status, cognitive-status).
+group StatusSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string, source category : string) {
+  // Problems written as Problem Concern Acts (as FHIR → CDA writes conditions).
+  section then ProblemSection(section, compositionSection, bundle, patientId);
+  section.entry as entry then {
+    entry.organizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as panel, uuid() as id, panel.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), panel.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusPanel(organizer, panel, bundle, patientId, category);
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.68') or hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.73')) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusProblem(observation, condition, bundle, category, patientId);
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.68').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.73').not()) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusObservation(observation, resource, bundle, patientId, category);
+  };
+}
+
+// An organizer: a panel of its observations.
+group StatusPanel(source organizer : Organizer, target panel : Observation, target bundle : Bundle, source patientId : string, source category : string) {
+  organizer -> panel.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-simple-observation';
+  organizer.id as id -> panel.identifier as i then IIToIdentifier(id, i);
+  organizer -> panel.status = 'final';
+  organizer then StatusCategory(category, panel);
+  organizer.code as cd where (cd.code.exists() or cd.translation.exists() or cd.originalText.xmlText.exists()) -> panel.code as cc then CDToCodeableConcept(cd, cc);
+  organizer where (code.where(code.exists() or translation.exists() or originalText.xmlText.exists()).empty()) -> panel.code as cc, cc.coding as coding, coding.system = 'http://loinc.org', coding.code = evaluate(organizer, iif(%category = 'cognitive-status', '8693-4', '54522-8')), coding.display = evaluate(organizer, iif(%category = 'cognitive-status', 'Mental status', 'Functional status'));
+  organizer.effectiveTime as time then {
+    time.value as v -> panel.effective = create('dateTime') as date then TSToDateTime(time, date);
+    time where (value.empty() and (low.value.exists() or high.value.exists())) -> panel.effective = create('Period') as period then IVLTSToPeriod(time, period);
+  };
+  organizer.author last as author -> panel.performer as ref then AuthorReference(author, ref, bundle);
+  organizer.component as component then {
+    component.observation as observation -> bundle.entry as memberEntry, memberEntry.resource = create('Observation') as member, uuid() as id, member.id = id, memberEntry.fullUrl = append('urn:uuid:', id), panel.hasMember as ref, ref.reference = append('urn:uuid:', id), member.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusObservation(observation, member, bundle, patientId, category);
+  };
+}
+
+// An observation of the status: an assessment scale is a screening and assessment, any other a
+// simple observation; both carry the status category.
+group StatusObservation(source observation : CdaObservation, target resource : Observation, target bundle : Bundle, source patientId : string, source category : string) {
+  observation -> resource.status = 'final';
+  observation then StatusCategory(category, resource);
+  observation : AssessmentScaleObservation as scale then AssessmentScale(scale, resource, bundle, patientId);
+  observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.69').not()) then {
+    observation -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-simple-observation';
+    observation then ObservationContent(observation, resource, bundle);
+  };
+}
+
+// A functional or cognitive status problem of C-CDA 2.1: a Problem Observation in shape, a
+// Condition of the problem list with the status category.
+group StatusProblem(source observation : ProblemObservation, target condition : Condition, target bundle : Bundle, source category : string, source patientId : string) {
+  observation -> condition.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns';
+  observation -> condition.category as cc, cc.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/condition-category', coding.code = 'problem-list-item', coding.display = 'Problem List Item';
+  observation -> condition.category as cc, cc.coding as coding, coding.system = 'http://hl7.org/fhir/us/core/CodeSystem/us-core-category', coding.code = category;
+  observation then ProblemObservationToCondition(observation, condition, bundle, patientId);
+}
+
+group StatusCategory(source category : string, target resource : Observation) {
+  category -> resource.category as cc, cc.coding as coding, coding.system = 'http://hl7.org/fhir/us/core/CodeSystem/us-core-category', coding.code = category, coding.display = evaluate(category, iif($this = 'cognitive-status', 'Cognitive Status', 'Functional Status'));
+}

@@ -25,7 +25,7 @@ group ImmunizationToActivity(source immunization : Immunization, source bundle :
   immunization.status as status where (status = 'completed') -> activity.statusCode as sc, sc.code = 'completed';
   immunization.status as status where (status = 'entered-in-error') -> activity.statusCode as sc, sc.code = 'nullified';
   immunization.occurrence : dateTime as occurrence -> activity.effectiveTime = create('IVL_TS') as time then DateTimeToTS(occurrence, time);
-  immunization where (iif(occurrence.toString().exists(), false, true)) -> activity.effectiveTime = create('IVL_TS') as time, time.nullFlavor = 'UNK';
+  immunization where (occurrence.empty()) -> activity.effectiveTime = create('IVL_TS') as time, time.nullFlavor = 'UNK';
   immunization.protocolApplied first as applied then {
     applied.doseNumber : positiveInt as dose -> activity.repeatNumber as repeat, repeat.value = dose;
   };
