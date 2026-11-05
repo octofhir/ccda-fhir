@@ -212,8 +212,9 @@ dependencies = [
 
 [[package]]
 name = "ccda-fhir"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "base64",
  "clap",
  "fml-check",
  "fml-engine",
@@ -404,9 +405,9 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "fml-check"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac85d73c3a5cbf76875b4452b7de42b1ac4a9bc2237aa9123369124e2418695a"
+checksum = "5b23864a6e929534f172d1c956a631d1f560db3f3eaa2532de558efc4528dca6"
 dependencies = [
  "fml-syntax",
  "octofhir-fhirschema",
@@ -415,9 +416,9 @@ dependencies = [
 
 [[package]]
 name = "fml-engine"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0765ff2f4611a94688a768a64d5c5c494f406b4560f6a987904e7c315e348e35"
+checksum = "f4cc400334cea9ed904823bb23f6a46740235cfe075e0421522892397540ff7f"
 dependencies = [
  "fml-check",
  "fml-model",
@@ -431,9 +432,9 @@ dependencies = [
 
 [[package]]
 name = "fml-model"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e42b05ec748becd948e4c2912f6040bbc9daeb5b4c69e68d3ff87ad1de3e9739"
+checksum = "76c4a7df9f79f1c6eade76317808438e74c22426e410b7ccffa9bd4f7b3a326e"
 dependencies = [
  "fml-syntax",
  "serde",
@@ -442,18 +443,18 @@ dependencies = [
 
 [[package]]
 name = "fml-syntax"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8d34299032607913c0762a7a14ab7bf311d64534233153d7a23e2ca9c5e90eb"
+checksum = "53cc08895f5ea45b44a4b6688c1e19df3f4609066e83bfddc34c401fd86e720d"
 dependencies = [
  "rowan",
 ]
 
 [[package]]
 name = "fml-xml"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bab27e6c588da4100a9deddb317a14f0e35aa389d02f8e666234092144b08d79"
+checksum = "303dc623ad11dab21a201e0a6455740b2d72000413286b5b4a21a3aae7b8ab22"
 dependencies = [
  "roxmltree",
  "serde_json",
@@ -874,9 +875,9 @@ dependencies = [
 
 [[package]]
 name = "octofhir-fhirpath"
-version = "0.5.6"
+version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a6e075f0656930d30b3327249988048d35260c834cc565dd2af156da805258d"
+checksum = "78bbcf85c3c09ea7168ff07d3fbe694feb669272bd6b5cba79c2f8dc9129914d"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -1627,9 +1628,9 @@ checksum = "3a3b425286980a367278453f3b6d28cdcb134b574e5a35824a6ff5eebad50bb6"
 
 [[package]]
 name = "uuid"
-version = "1.26.1"
+version = "1.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
+checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -1767,9 +1768,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
+checksum = "8c3b93199df0ab874cdf0c6a94f0a0dc3423fe41f1cafb62b8bd7b1deb277aef"
 dependencies = [
  "memchr",
 ]
