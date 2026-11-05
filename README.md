@@ -25,17 +25,28 @@ are used as published.
 
 | | CDA → FHIR | FHIR → CDA |
 |---|---|---|
-| Header | Composition, Patient (race, ethnicity, language, guardian), Practitioner / PractitionerRole, Organization, Device, attester, event | US Realm Header (C-CDA 5.0.0), CCD |
+| Header | Composition, Patient (race, ethnicity, language, guardian, birth place), Practitioner / PractitionerRole / Organization by the participations mapping (a participant named only by its id is the practitioner described elsewhere), Device, attester, event | US Realm Header (C-CDA 5.0.0), CCD |
 | Allergies | AllergyIntolerance: status, type and category, reactions and severity, criticality, no known allergies | Allergy Concern act, Allergy Intolerance observation |
-| Problems | Condition (problems and health concerns): category by section, status, onset and abatement, date of diagnosis | Problem Concern act, Problem observation |
-| Medications | MedicationRequest: intent, status, dosage and timing (PIVL_TS, EIVL_TS), supply order, sig | Medication Activity |
+| Problems | Condition (problems and health concerns): category by section, status, onset and abatement, date of diagnosis, supporting observations as evidence | Problem Concern act, Problem observation |
+| Medications | MedicationRequest: intent, status, dosage and timing (PIVL_TS, EIVL_TS), maximum dose, supply order, sig; a Medication (US Core) when the product has more than a code (id, form, manufacturer, vehicle); admission and discharge medications | Medication Activity (with Drug Vehicle), Admission and Discharge Medication |
 | Immunizations | Immunization: status, not-given reason, lot, manufacturer, performer | Immunization Activity |
-| Results | DiagnosticReport (Lab) with laboratory Observations: every value type, reference ranges | Result Organizer, Result Observations |
+| Results | DiagnosticReport (Lab) with laboratory Observations: every value type (non-UCUM units included), reference ranges, specimens (US Core Specimen) | Result Organizer, Result Observations, specimen |
 | Vital signs | Vital signs panel with member Observations | Vital Signs Organizer |
-| Procedures | Procedure: status, performed, body site, performers, reasons | Procedure Activity Procedure |
+| Procedures | Procedure: status, performed, body site, performers, location, reasons, devices | Procedure Activity Procedure |
+| Encounters | Encounter (Encounter Activity and the header encompassingEncounter, one resource when they share an id): status, class from V3 ActCode or CPT E&M codes, type, period, discharge disposition, participants, Location, reasons, encounter diagnoses (with admission and discharge diagnoses as their role) | Encounter Activity with Service Delivery Location, Indication and Encounter Diagnosis; componentOf/encompassingEncounter |
+| Social history | Smoking status, pregnancy status (with the estimated delivery date) and intent, sexual orientation, screening and assessment (assessment scales with their answers), other social history observations; birth sex, sex, gender identity and tribal affiliation as Patient extensions | Smoking Status, Pregnancy, Pregnancy Intention, Sexual Orientation, Assessment Scale, Social History Observation; the Patient extensions as their observations |
+| Notes | DocumentReference (clinical-note) from Note Activity in any section: type, content (inline base64 as sent, or the narrative it refers to as XHTML), author, date, encounter, related documents | Note Activity with the content inline and its text in the section narrative |
+| Goals and plan of treatment | Goal (description, target, start and due); planned observations, procedures, encounters and acts and referrals as ServiceRequest (intent from the mood); planned medications as MedicationRequest; Assessment and Plan the same way | Goal Observation, Planned Procedure |
+| Functional and mental status | Observations of the functional-status and cognitive-status categories (organizers as panels, assessment scales as screening and assessment); functional and cognitive status problems as Conditions | Functional and Mental Status organizers and observations, Assessment Scale |
+| Family history | FamilyMemberHistory: relationship, sex, birth, death, conditions with age at onset and cause of death | Family History Organizer, Observation, Age and Death Observations |
+| Medical equipment | Device (US Core implantable device for implants: UDI carrier, lot, serial, dates, model, manufacturer) as a procedure's focal device or from a supply | Product Instance with UDI Organizer, Non-Medicinal Supply Activity |
+| Diagnoses and health concerns | Admission and discharge diagnoses as encounter diagnoses; Health Concern Acts as health-concern Conditions | Hospital Admission and Discharge Diagnosis, Health Concern Act |
+| Discharge medications | MedicationRequest of the discharge category | Discharge Medication |
 
 Sections and entries are recognised by any of their template ids, in any version, and the
-"entries optional" templates of earlier releases. Narrative becomes XHTML and back. Identifiers
+"entries optional" templates of earlier releases; entries of a section the maps do not know are
+still converted by their own templates, and narrative-only sections (chief complaint, hospital
+course, discharge instructions and the like) keep their template both ways. Narrative becomes XHTML and back. Identifiers
 follow the guidance: OIDs to URIs through HL7 Terminology, `urn:oid:` and `urn:uuid:` otherwise.
 Timestamps keep their precision and time zone. Identical Practitioners and Organizations are
 merged.
@@ -49,12 +60,12 @@ Every CI run converts the HL7 C-CDA and CDA examples and the ONC test data (all 
 | | |
 |---|---|
 | Documents | 506 (199 documents, 307 section examples in a minimal document); 0 failed |
-| Entries recognised | 55.3% — the rest belong to domains outside the first stage (social history, encounters, plans, …), listed by template in the report |
-| FHIR resources valid against US Core 6.1.0 | 97.0% |
-| CDA written back conforming to the C-CDA 5.0.0 templates | 89.8% of documents, 99.4% of templated elements |
-| Round trip CDA → FHIR → CDA, significant values kept | 68.3% |
-| Round trip FHIR → CDA → FHIR, significant values kept | 97.4% |
-| Agreement with the C-CDA on FHIR consensus outputs | every value of the recommended allergy, problem, procedure, immunization and patient resources |
+| Entries recognised | 94.8% (sections 95.4%); the rest are listed by template in the report |
+| FHIR resources valid against US Core 6.1.0 | 99.7% |
+| CDA written back conforming to the C-CDA 5.0.0 templates | 92.2% of documents, 99.7% of templated elements |
+| Round trip CDA → FHIR → CDA, significant values kept | 73.1% |
+| Round trip FHIR → CDA → FHIR, significant values kept | 98.7% |
+| Agreement with the C-CDA on FHIR consensus outputs | 88.8%: every value of the recommended allergy, problem, procedure, immunization, patient and encounter resources; the drafts' differences from the tables are listed in the report |
 
 The CDA round trip loses what C-CDA on FHIR maps to nothing: the ids and times of concern acts,
 the allergy observation's value (FHIR keeps only its type and category), a second author. Every
@@ -64,8 +75,21 @@ mapped, codes a ConceptMap has no target for — with the path and the line in t
 US Core validity is checked with the [fhirschema](https://github.com/octofhir/fhirschema)
 validator; C-CDA conformance by the templates' StructureDefinitions (cardinality, fixed and pattern
 values, invariants; not slices or terminology). FHIR → CDA follows the C-CDA on FHIR tables, which
-HL7 marks as a single-vendor mapping without multi-vendor consensus; results have no FHIR → CDA
-table and are the reverse of the CDA → FHIR one.
+HL7 marks as a single-vendor mapping without multi-vendor consensus; results, encounters, social
+history and notes have no FHIR → CDA table and are the reverse of the CDA → FHIR one, written to
+the C-CDA 5.0.0 templates.
+
+Beyond the tables: goals, plans of treatment, functional and mental status, family history,
+medical equipment and discharge medications have no C-CDA on FHIR table at all; their maps follow
+the C-CDA 5.0.0 templates and the US Core profiles, and their descriptions say so. Hospital
+admission and discharge diagnoses are encounter diagnoses with their role; Encounter class and type, Location name and DiagnosticReport issued, which US Core requires,
+are data-absent when the document does not give them (as the mapping's own examples do).
+
+## Writing maps
+
+[docs/writing-maps.md](docs/writing-maps.md): what runs in which order, the JSON a map sees, how
+templates route, where each kind of rule lives, the FML and FHIRPath traps, and how to try and
+measure a change.
 
 ## Library
 
