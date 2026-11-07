@@ -2,7 +2,7 @@
 /// name = 'CdaAllergiesToFhir'
 /// title = 'C-CDA allergies to US Core AllergyIntolerance'
 /// status = 'active'
-/// description = 'Allergy Concern acts to US Core 6.1.0 AllergyIntolerance, after "Allergies CDA → FHIR" of C-CDA on FHIR 2.0.0: each Allergy Intolerance observation is one AllergyIntolerance.'
+/// description = 'Allergy Concern acts to US Core 6.1.0 AllergyIntolerance, after "Allergies CDA → FHIR" of C-CDA on FHIR 2.0.0: each Allergy Intolerance observation is one AllergyIntolerance, each of its authors a US Core Provenance.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-allergies-to-fhir" = "CdaAllergiesToFhir"
 
@@ -26,7 +26,14 @@ group AllergiesSection(source section : AllergiesSection, target compositionSect
   section.entry as entry then {
     entry.act : AllergyConcernAct as act then {
       act.entryRelationship as relationship then {
-        relationship.observation : AllergyObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('AllergyIntolerance') as allergy, uuid() as id, allergy.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), allergy.patient as patient, patient.reference = append('urn:uuid:', patientId) then AllergyIntolerance(act, observation, allergy, bundle);
+        relationship.observation : AllergyObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('AllergyIntolerance') as allergy, uuid() as id, allergy.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), allergy.patient as patient, patient.reference = append('urn:uuid:', patientId) then {
+          observation then AllergyIntolerance(act, observation, allergy, bundle);
+          // A Provenance per author; the concern's authors when the observation has none.
+          observation.author as author then AuthorProvenance(author, id, bundle);
+          observation where (author.empty()) then {
+            act.author as author then AuthorProvenance(author, id, bundle);
+          };
+        };
       };
     };
   };

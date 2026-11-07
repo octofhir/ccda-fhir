@@ -2,7 +2,7 @@
 /// name = 'CdaNotesToFhir'
 /// title = 'C-CDA notes to US Core DocumentReference'
 /// status = 'active'
-/// description = 'Note Activity, in the Notes section or any other, to US Core 6.1.0 DocumentReference, after "Notes CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Note Activity, in the Notes section or any other, to US Core 6.1.0 DocumentReference, each of its authors also a US Core Provenance, after "Notes CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-notes-to-fhir" = "CdaNotesToFhir"
 
@@ -19,7 +19,10 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
 // document's encompassingEncounter, or `none`.
 group NotesInSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string, source encounterRef : string) {
   section.entry as entry then {
-    entry.act : NoteActivity as note -> bundle.entry as resourceEntry, resourceEntry.resource = create('DocumentReference') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then NoteActivity(note, resource, bundle, encounterRef);
+    entry.act : NoteActivity as note -> bundle.entry as resourceEntry, resourceEntry.resource = create('DocumentReference') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      note then NoteActivity(note, resource, bundle, encounterRef);
+      note.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

@@ -190,6 +190,55 @@ fn note_text(text: &Value) -> String {
     }
 }
 
+/// The extension a map marks a Bundle entry with to say what it could not carry over (group
+/// `LeftOut` of the participants map): its value is the message, the entry's `target` the
+/// resource it is about.
+const CONVERSION_LOSS: &str = "http://octofhir.com/ccda-fhir/StructureDefinition/conversion-loss";
+
+/// Takes the entries the maps marked with [`CONVERSION_LOSS`] out of the Bundle and reports
+/// each one, naming the resource it is about.
+pub(crate) fn take_conversion_losses(bundle: &mut Value) -> Vec<Loss> {
+    let Some(entries) = bundle["entry"].as_array_mut() else {
+        return Vec::new();
+    };
+    let mut messages = Vec::new();
+    entries.retain(|entry| {
+        let Some(message) = entry["resource"]["extension"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|e| e["url"] == CONVERSION_LOSS)
+            .and_then(|e| e["valueString"].as_str())
+        else {
+            return true;
+        };
+        let target = entry["resource"]["target"][0]["reference"]
+            .as_str()
+            .unwrap_or_default();
+        messages.push((target.to_owned(), message.to_owned()));
+        false
+    });
+    let kinds: HashMap<&str, &str> = entries
+        .iter()
+        .filter_map(|e| {
+            Some((
+                e["fullUrl"].as_str()?,
+                e["resource"]["resourceType"].as_str()?,
+            ))
+        })
+        .collect();
+    messages
+        .into_iter()
+        .map(|(target, message)| {
+            let about = match kinds.get(target.as_str()) {
+                Some(kind) => format!("{kind} {target}"),
+                None => target,
+            };
+            Loss::new(Stage::Map, "", format!("{about}: {message}"))
+        })
+        .collect()
+}
+
 /// Converts the CDA narrative the maps copy into `Narrative.div` to XHTML.
 pub(crate) fn narratives_to_xhtml(bundle: &mut Value) -> Vec<Loss> {
     let mut losses = Vec::new();

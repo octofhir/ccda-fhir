@@ -2,7 +2,7 @@
 /// name = 'FhirDevicesToCda'
 /// title = 'FHIR Device to C-CDA product instance'
 /// status = 'active'
-/// description = 'Device (US Core 6.1.0 implantable device) to Product Instance with its UDI Organizer (C-CDA 5.0.0), as the product of a procedure or a Non-Medicinal Supply Activity: the inverse of cda-devices-to-fhir.'
+/// description = 'Device (US Core 6.1.0 implantable device) to Product Instance with its UDI Organizer (C-CDA 5.0.0), as the product of a procedure or a Non-Medicinal Supply Activity (with the US Core Provenance authors of the Device): the inverse of cda-devices-to-fhir.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-devices-to-cda" = "FhirDevicesToCda"
 
@@ -15,6 +15,7 @@ uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
 
 // A device as a Product Instance: the UDI (human-readable form) as the FDA id, else its ids; the
 // type as the playing device's code; the manufacturer as the scoping entity.
@@ -85,11 +86,12 @@ group UdiComponent(target observation, source root : string, source extension : 
 }
 
 // A device of the Medical Equipment section: a Non-Medicinal Supply Activity of the product.
-group DeviceToSupply(source device : Device, target supply : Supply) {
+group DeviceToSupply(source device : Device, source bundle : Bundle, target supply : Supply) {
   device -> supply.classCode = 'SPLY', supply.moodCode = 'EVN';
   device -> supply.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.50', template.extension = '2014-06-09';
   device -> uuid() as u, supply.id as id, id.root = evaluate(u, $this.upper());
   device -> supply.statusCode as sc, sc.code = 'completed';
   device -> supply.participant as participant, participant.typeCode = 'PRD', participant.participantRole as role then DeviceToProductInstance(device, role);
   device then DeviceToUdiOrganizer(device, supply);
+  device where (id.exists()) -> evaluate(device, %bundle.entry.where(resource.is(Device) and resource.id = %device.id).fullUrl.first()) as ownUrl, evaluate(device, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, supply);
 }

@@ -2,7 +2,7 @@
 /// name = 'FhirFamilyToCda'
 /// title = 'FamilyMemberHistory to C-CDA family history'
 /// status = 'active'
-/// description = 'FamilyMemberHistory to Family History Organizer (C-CDA 5.0.0) with a Family History Observation per condition, its Age Observation and Family History Death Observation: the inverse of cda-family-to-fhir.'
+/// description = 'FamilyMemberHistory to Family History Organizer (C-CDA 5.0.0) with a Family History Observation per condition, its Age Observation and Family History Death Observation, the US Core Provenance authors as its authors: the inverse of cda-family-to-fhir.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-family-to-cda" = "FhirFamilyToCda"
 
@@ -14,6 +14,7 @@ uses "http://hl7.org/cda/stds/core/StructureDefinition/CD" alias CD as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/CE" alias CE as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-datatypes-to-cda"
+imports "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda"
 
 group FamilyMemberToOrganizer(source member : FamilyMemberHistory, source bundle : Bundle, target organizer : Organizer) {
   member -> organizer.classCode = 'CLUSTER', organizer.moodCode = 'EVN';
@@ -36,6 +37,7 @@ group FamilyMemberToOrganizer(source member : FamilyMemberHistory, source bundle
     };
   };
   member.condition as condition -> organizer.component as component, component.observation as observation then FamilyConditionToObservation(condition, observation);
+  member where (id.exists()) -> evaluate(member, %bundle.entry.where(resource.is(FamilyMemberHistory) and resource.id = %member.id).fullUrl.first()) as ownUrl, evaluate(member, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, organizer);
 }
 
 group FamilyConditionToObservation(source condition, target observation : CdaObservation) {

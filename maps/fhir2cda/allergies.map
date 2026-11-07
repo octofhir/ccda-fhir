@@ -2,7 +2,7 @@
 /// name = 'FhirAllergiesToCda'
 /// title = 'US Core AllergyIntolerance to C-CDA allergies'
 /// status = 'active'
-/// description = 'US Core 6.1.0 AllergyIntolerance to an Allergy Concern act with an Allergy Intolerance observation, after "Allergies FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping, no multi-vendor consensus).'
+/// description = 'US Core 6.1.0 AllergyIntolerance to an Allergy Concern act with an Allergy Intolerance observation (its authors the recorder and the US Core Provenance authors), after "Allergies FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping, no multi-vendor consensus).'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-allergies-to-cda" = "FhirAllergiesToCda"
 
@@ -71,6 +71,7 @@ group AllergyToObservation(source allergy : AllergyIntolerance, source bundle : 
     allergy.code as cc -> observation.participant as participant, participant.typeCode = 'CSM', participant.participantRole as role, role.classCode = 'MANU', role.playingEntity as entity, entity.classCode = 'MMAT', entity.code = create('CE') as code then CodeableConceptToCD(cc, code);
   };
   allergy.recorder as ref -> evaluate(allergy, iif(recordedDate.hasValue(), recordedDate, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, observation);
+  allergy where (id.exists()) -> evaluate(allergy, %bundle.entry.where(resource.is(AllergyIntolerance) and resource.id = %allergy.id).fullUrl.first()) as ownUrl, evaluate(allergy, iif(recorder.reference.exists(), '|' + recorder.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, observation);
   allergy.clinicalStatus as status then {
     status.coding first as coding then {
       coding.code as c -> observation.entryRelationship as relationship, relationship.typeCode = 'SUBJ', relationship.inversionInd = true, relationship.observation as statusObservation then {

@@ -730,3 +730,151 @@ async fn a_problems_supporting_observation_is_its_evidence() {
     let again = resources(&back.bundle, "Condition")[0];
     assert_eq!(again["evidence"].as_array().map(Vec::len), Some(1));
 }
+
+/// The entry of `bundle` a reference names.
+fn resolve<'a>(bundle: &'a Value, reference: &Value) -> &'a Value {
+    let reference = reference["reference"].as_str().expect("a reference");
+    bundle["entry"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["fullUrl"] == reference)
+        .map(|e| &e["resource"])
+        .unwrap_or_else(|| panic!("{reference} is not in the Bundle"))
+}
+
+#[tokio::test]
+async fn entry_authors_are_provenance() {
+    let converter = converter().await;
+    // The codeine allergy with three more authors on the observation: one representing an
+    // organization; one with neither an organization nor a role code (US Core cannot have it as
+    // an agent: provenance-1); one with an organization whose time is only a date.
+    let authors = r#"</author>
+<author>
+  <templateId root="2.16.840.1.113883.10.20.22.4.119"/>
+  <time value="20140104090000-0500"/>
+  <assignedAuthor>
+    <id extension="12345" root="2.16.840.1.113883.4.6"/>
+    <addr><streetAddressLine>1002 Healthcare Dr</streetAddressLine><city>Portland</city><state>OR</state><postalCode>97266</postalCode></addr>
+    <telecom use="WP" value="tel:555-555-1003"/>
+    <assignedPerson><name><given>Ada</given><family>Clinic</family></name></assignedPerson>
+    <representedOrganization>
+      <id root="2.16.840.1.113883.19.5.9999.1393"/>
+      <name>Community Health and Hospitals</name>
+      <telecom use="WP" value="tel:555-555-5000"/>
+      <addr><streetAddressLine>1001 Village Avenue</streetAddressLine><city>Portland</city><state>OR</state><postalCode>99123</postalCode></addr>
+    </representedOrganization>
+  </assignedAuthor>
+</author>
+<author>
+  <templateId root="2.16.840.1.113883.10.20.22.4.119"/>
+  <time value="201401050930-0500"/>
+  <assignedAuthor>
+    <id extension="67890" root="2.16.840.1.113883.4.6"/>
+    <assignedPerson><name><given>Bo</given><family>Solo</family></name></assignedPerson>
+  </assignedAuthor>
+</author>
+<author>
+  <templateId root="2.16.840.1.113883.10.20.22.4.119"/>
+  <time value="20140106"/>
+  <assignedAuthor>
+    <id extension="24680" root="2.16.840.1.113883.4.6"/>
+    <addr><streetAddressLine>1002 Healthcare Dr</streetAddressLine><city>Portland</city><state>OR</state><postalCode>97266</postalCode></addr>
+    <telecom use="WP" value="tel:555-555-1004"/>
+    <assignedPerson><name><given>Cy</given><family>Later</family></name></assignedPerson>
+    <representedOrganization>
+      <id root="2.16.840.1.113883.19.5.9999.1393"/>
+      <name>Community Health and Hospitals</name>
+      <telecom use="WP" value="tel:555-555-5000"/>
+      <addr><streetAddressLine>1001 Village Avenue</streetAddressLine><city>Portland</city><state>OR</state><postalCode>99123</postalCode></addr>
+    </representedOrganization>
+  </assignedAuthor>
+</author>"#;
+    let mut document = fragment("allergy-codeine-section.xml");
+    // The observation's author is the last one (the concern act's comes before it).
+    let at = document.rfind("</author>").unwrap();
+    document.replace_range(at..at + "</author>".len(), authors);
+    let fhir = converter.to_fhir(&document, &options()).await.unwrap();
+    let bundle = &fhir.bundle;
+    let allergy_url = bundle["entry"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["resource"]["resourceType"] == "AllergyIntolerance")
+        .and_then(|e| e["fullUrl"].as_str())
+        .unwrap();
+
+    // One Provenance per author US Core can take, in document order.
+    let provenances = resources(bundle, "Provenance");
+    assert_eq!(provenances.len(), 3);
+    for provenance in &provenances {
+        assert_eq!(
+            provenance["meta"]["profile"][0],
+            "http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance"
+        );
+        assert_eq!(provenance["target"][0]["reference"], allergy_url);
+        let agent = &provenance["agent"][0];
+        assert_eq!(
+            agent["type"]["coding"][0]["system"],
+            "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
+        );
+        assert_eq!(agent["type"]["coding"][0]["code"], "author");
+        // A role (code or organization): never a bare Practitioner (provenance-1).
+        assert_eq!(
+            resolve(bundle, &agent["who"])["resourceType"],
+            "PractitionerRole"
+        );
+    }
+    // Henry Seven, in a role with a code and no organization: no onBehalfOf.
+    assert_eq!(provenances[0]["recorded"], "2014-01-03T10:25:00-05:00");
+    assert!(provenances[0]["agent"][0]["onBehalfOf"].is_null());
+    // Ada Clinic, on behalf of her organization (the role's own).
+    let ada = &provenances[1]["agent"][0];
+    assert_eq!(provenances[1]["recorded"], "2014-01-04T09:00:00-05:00");
+    let organization = resolve(bundle, &ada["onBehalfOf"]);
+    assert_eq!(organization["name"], "Community Health and Hospitals");
+    assert_eq!(
+        resolve(bundle, &ada["who"])["organization"]["reference"],
+        ada["onBehalfOf"]["reference"]
+    );
+    // Cy Later's time is a date: recorded is data-absent, not padded.
+    assert!(provenances[2]["recorded"].is_null());
+    assert_eq!(
+        provenances[2]["_recorded"]["extension"][0]["valueCode"],
+        "unknown"
+    );
+    // Bo Solo has no Provenance, and the report says so.
+    let left_out: Vec<&str> = fhir
+        .report
+        .losses
+        .iter()
+        .map(|l| l.message.as_str())
+        .filter(|m| m.contains("provenance-1"))
+        .collect();
+    assert_eq!(left_out.len(), 1, "{left_out:?}");
+    assert!(left_out[0].starts_with(&format!(
+        "AllergyIntolerance {allergy_url}: author 2.16.840.1.113883.4.6^67890"
+    )));
+    // The recorder is still the last author.
+    assert_eq!(
+        resolve(
+            bundle,
+            &resources(bundle, "AllergyIntolerance")[0]["recorder"]
+        )["resourceType"],
+        "PractitionerRole"
+    );
+
+    // Back to CDA: the recorder (Cy Later) and the other Provenance authors, each once.
+    let cda = converter.to_cda(bundle, &options()).await.unwrap();
+    for (id, times) in [("99999999", 1), ("12345", 1), ("24680", 1), ("67890", 0)] {
+        let authored = format!(r#"<id root="2.16.840.1.113883.4.6" extension="{id}"/>"#);
+        assert_eq!(cda.xml.matches(&authored).count(), times, "author {id}");
+    }
+    assert!(cda.xml.contains(r#"<time value="20140104090000-0500"/>"#));
+    assert!(
+        cda.xml
+            .contains("<name>Community Health and Hospitals</name>")
+    );
+    let back = converter.to_fhir(&cda.xml, &options()).await.unwrap();
+    assert_eq!(resources(&back.bundle, "Provenance").len(), 3);
+}

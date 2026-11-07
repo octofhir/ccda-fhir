@@ -2,7 +2,7 @@
 /// name = 'CdaSocialToFhir'
 /// title = 'C-CDA social history to US Core'
 /// status = 'active'
-/// description = 'Social History section entries to US Core 6.1.0 smoking status, pregnancy status, pregnancy intent and simple observations, and birth sex, sex, gender identity and tribal affiliation to Patient extensions, after "Social History CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Social History section entries to US Core 6.1.0 smoking status, pregnancy status, pregnancy intent and simple observations (their authors US Core Provenance), and birth sex, sex, gender identity and tribal affiliation to Patient extensions, after "Social History CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-social-to-fhir" = "CdaSocialToFhir"
 
@@ -44,7 +44,10 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
 // The templates that are Patient extensions in FHIR, not Observations.
 group SocialHistorySection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.200').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.507').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.34.3.45').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.506').not() and code.where(code = '76691-5' and codeSystem = '2.16.840.1.113883.6.1').empty()) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then SocialObservation(observation, resource, bundle, patientId);
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.200').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.507').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.34.3.45').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.506').not() and code.where(code = '76691-5' and codeSystem = '2.16.840.1.113883.6.1').empty()) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      observation then SocialObservation(observation, resource, bundle, patientId);
+      observation.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 
@@ -87,6 +90,7 @@ group AssessmentScale(source observation : CdaObservation, target resource : Obs
       supporting -> member.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/observation-category', coding.code = 'survey', coding.display = 'Survey';
       supporting then ObservationContent(supporting, member, bundle);
       supporting where (effectiveTime.empty()) then ObservationEffective(observation, member);
+      supporting.author as author then AuthorProvenance(author, id, bundle);
     };
   };
 }

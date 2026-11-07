@@ -2,7 +2,7 @@
 /// name = 'CdaMedicationsToFhir'
 /// title = 'C-CDA medications to US Core MedicationRequest'
 /// status = 'active'
-/// description = 'Medication Activity to US Core 6.1.0 MedicationRequest, after "Medications CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Medication Activity to US Core 6.1.0 MedicationRequest, each of its authors a US Core Provenance, after "Medications CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-medications-to-fhir" = "CdaMedicationsToFhir"
 
@@ -28,7 +28,7 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
 
 group MedicationsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then MedicationRequest(activity, request, bundle);
+    entry.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then MedicationRequest(activity, request, bundle, id);
   };
 }
 
@@ -41,14 +41,14 @@ group DischargeMedicationsSection(source section : Section, target compositionSe
       discharge.entryRelationship as relationship then {
         relationship.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
           activity -> request.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/medicationrequest-category', coding.code = 'discharge', coding.display = 'Discharge';
-          activity then MedicationRequest(activity, request, bundle);
+          activity then MedicationRequest(activity, request, bundle, id);
         };
       };
     };
     // A Medication Activity straight in the section (the "entries optional" template's way).
     entry.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
       activity -> request.category as category, category.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/medicationrequest-category', coding.code = 'discharge', coding.display = 'Discharge';
-      activity then MedicationRequest(activity, request, bundle);
+      activity then MedicationRequest(activity, request, bundle, id);
     };
   };
 }
@@ -73,7 +73,7 @@ group MedicationOf(source activity, source product : ManufacturedProduct, target
   };
 }
 
-group MedicationRequest(source activity : MedicationActivity, target request : MedicationRequest, target bundle : Bundle) {
+group MedicationRequest(source activity : MedicationActivity, target request : MedicationRequest, target bundle : Bundle, source requestId : string) {
   activity -> request.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest';
   activity.id as id -> request.identifier as i then IIToIdentifier(id, i);
   // A Planned Medication Activity's intent is set by the plan (plans.map).
@@ -96,6 +96,8 @@ group MedicationRequest(source activity : MedicationActivity, target request : M
     };
   };
   activity.author last as author -> request.requester as ref then AuthorReference(author, ref, bundle);
+  // Every author is a Provenance too (CF-medications: `/author` → .requester & Provenance).
+  activity.author as author then AuthorProvenance(author, requestId, bundle);
   activity.author first as author then {
     author.time as time -> request.authoredOn = create('dateTime') as date then TSToDateTime(time, date);
   };
@@ -166,7 +168,7 @@ group AdmissionMedicationsSection(source section : Section, target compositionSe
   section.entry as entry then {
     entry.act : AdmissionMedication as admission then {
       admission.entryRelationship as relationship then {
-        relationship.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then MedicationRequest(activity, request, bundle);
+        relationship.substanceAdministration : MedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then MedicationRequest(activity, request, bundle, id);
       };
     };
   };

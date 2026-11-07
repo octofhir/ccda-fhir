@@ -6,11 +6,11 @@
 |---|---|
 | Sections recognised | 2951 of 3092 (95.4%) |
 | Entries recognised | 3838 of 4048 (94.8%) |
-| Round trip CDA → FHIR → CDA, significant values kept | 46564 of 63717 (73.1%) |
-| Round trip FHIR → CDA → FHIR, significant values of the resources kept | 51780 of 52461 (98.7%) |
-| Resources valid against US Core 6.1.0 | 10422 of 10452 (99.7%) |
-| CDA written back conforming to C-CDA 5.0.0 templates | 459 of 498 documents (92.2%); 14881 of 14931 templated elements (99.7%) |
-| Losses reported | 687 |
+| Round trip CDA → FHIR → CDA, significant values kept | 46951 of 63717 (73.7%) |
+| Round trip FHIR → CDA → FHIR, significant values of the resources kept | 52383 of 53107 (98.6%) |
+| Resources valid against US Core 6.1.0 | 11038 of 11068 (99.7%) |
+| CDA written back conforming to C-CDA 5.0.0 templates | 459 of 498 documents (92.2%); 14961 of 15011 templated elements (99.7%) |
+| Losses reported | 1053 |
 
 ## Resources
 
@@ -30,11 +30,12 @@
 | Medication | 435 |
 | MedicationRequest | 537 |
 | Observation | 2349 |
-| Organization | 1239 |
+| Organization | 1241 |
 | Patient | 493 |
-| Practitioner | 1530 |
-| PractitionerRole | 705 |
+| Practitioner | 1599 |
+| PractitionerRole | 774 |
 | Procedure | 261 |
+| Provenance | 476 |
 | ServiceRequest | 373 |
 
 ## US Core validation errors
@@ -91,13 +92,13 @@ Checked: element cardinality, fixed and pattern values, error invariants of the 
 | PlanofTreatmentSection: text needs at least 1, has 0 | 1 |
 | ProblemSection: text needs at least 1, has 0 | 1 |
 
-Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p (2), no-cc-rfv (4), shall-use-one-binding (220), ts-value-before-document (228)
+Invariants that did not evaluate: 4537-5402 (174), author-details (456), no-a-p (2), no-cc-rfv (4), shall-use-one-binding (220), ts-value-before-document (228)
 
 ## Losses by stage
 
 | Stage | Count |
 |---|---|
-| map | 480 |
+| map | 846 |
 | narrative | 21 |
 | read | 186 |
 
@@ -106,17 +107,17 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | Kind | Documents |
 |---|---|
 | city | 183 |
-| code | 2288 |
+| code | 2249 |
 | country | 138 |
-| family | 159 |
-| given | 163 |
-| id | 3033 |
-| postalCode | 152 |
+| family | 120 |
+| given | 125 |
+| id | 2963 |
+| postalCode | 151 |
 | prefix | 72 |
 | quantity | 314 |
 | state | 147 |
-| streetAddressLine | 161 |
-| suffix | 47 |
+| streetAddressLine | 160 |
+| suffix | 14 |
 | time | 1856 |
 
 ## Templates not mapped
@@ -201,18 +202,18 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/C-CDA-Examples/Allergies/Withdrawn Allergy to specific drug Epinephrine/Withdrawn_Allergy to specific drug Epinephrine(C-CDA2.1).xml | 1/1 | 1/1 | 42.4% | 0 |
 | corpus/C-CDA-Examples/Care Team/Care Team Narrative Only/Care Team Narrative Only (C-CDAR2.1).xml | 0/1 | 0/0 | — | 0 |
 | corpus/C-CDA-Examples/Care Team/Care Team Structured Entry/Care Team Organizer Example.xml | 0/1 | 0/1 | — | 0 |
-| corpus/C-CDA-Examples/Documents/CCD/CCD 1/CCD.XML | 13/15 | 27/31 | 64.4% | 5 |
-| corpus/C-CDA-Examples/Documents/CCD/CCD 2/CCD.xml | 7/7 | 5/7 | 71.7% | 1 |
-| corpus/C-CDA-Examples/Documents/Care Plan/Care_Plan.xml | 2/4 | 2/7 | 62.4% | 1 |
-| corpus/C-CDA-Examples/Documents/Consultation Note/Consultation_Note.xml | 11/13 | 18/21 | 73.3% | 8 |
+| corpus/C-CDA-Examples/Documents/CCD/CCD 1/CCD.XML | 13/15 | 27/31 | 64.7% | 5 |
+| corpus/C-CDA-Examples/Documents/CCD/CCD 2/CCD.xml | 7/7 | 5/7 | 71.7% | 11 |
+| corpus/C-CDA-Examples/Documents/Care Plan/Care_Plan.xml | 2/4 | 2/7 | 66.0% | 2 |
+| corpus/C-CDA-Examples/Documents/Consultation Note/Consultation_Note.xml | 11/13 | 18/21 | 73.3% | 33 |
 | corpus/C-CDA-Examples/Documents/Diagnostic Imaging Report/Diagnostic_Imaging_Report.xml | 0/5 | 0/5 | 98.3% | 0 |
 | corpus/C-CDA-Examples/Documents/Discharge Summary/Discharge_Summary.xml | 20/21 | 16/16 | 74.4% | 3 |
-| corpus/C-CDA-Examples/Documents/History and Physical/History_and_Physical.xml | 15/17 | 22/24 | 64.7% | 5 |
+| corpus/C-CDA-Examples/Documents/History and Physical/History_and_Physical.xml | 15/17 | 22/24 | 64.7% | 8 |
 | corpus/C-CDA-Examples/Documents/Operative Note/Operative_Note.xml | 10/16 | 9/10 | 94.7% | 0 |
-| corpus/C-CDA-Examples/Documents/Procedure Note/Procedure_Note.xml | 9/16 | 8/10 | 94.7% | 0 |
-| corpus/C-CDA-Examples/Documents/Progress Note/Progress_Note.xml | 11/12 | 13/15 | 68.6% | 2 |
-| corpus/C-CDA-Examples/Documents/Referral Note/Referral_Note.xml | 15/19 | 23/31 | 59.5% | 11 |
-| corpus/C-CDA-Examples/Documents/Transfer Summary/Transfer_Summary.xml | 21/27 | 38/48 | 61.7% | 13 |
+| corpus/C-CDA-Examples/Documents/Procedure Note/Procedure_Note.xml | 9/16 | 8/10 | 94.7% | 2 |
+| corpus/C-CDA-Examples/Documents/Progress Note/Progress_Note.xml | 11/12 | 13/15 | 69.7% | 21 |
+| corpus/C-CDA-Examples/Documents/Referral Note/Referral_Note.xml | 15/19 | 23/31 | 59.8% | 15 |
+| corpus/C-CDA-Examples/Documents/Transfer Summary/Transfer_Summary.xml | 21/27 | 38/48 | 67.4% | 20 |
 | corpus/C-CDA-Examples/Encounters/Hospital Discharge Encounter with Billable Diagnoses/Hospital Discharge Encounter with Billable Diagnoses(C-CDA2.1).xml | 1/1 | 1/1 | 76.0% | 0 |
 | corpus/C-CDA-Examples/Encounters/Inpatient Encounter Discharged to Rehab Location/Inpatient_Encounter_Discharged_to_Rehab_Location(C-CDA2.1).xml | 1/1 | 1/1 | 62.5% | 4 |
 | corpus/C-CDA-Examples/Encounters/Multiple CPT E&M Codes/Multiple CPT E&M Codes Single Encounter(C-CDAR2.1).xml | 1/1 | 1/1 | 85.3% | 0 |
@@ -282,7 +283,7 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/C-CDA-Examples/Guide Examples/Medications Administered Section (V2)_2.16.840.1.113883.10.20.22.2.38/Medications Administered Section (V2) Example.xml | 0/1 | 1/1 | — | 2 |
 | corpus/C-CDA-Examples/Guide Examples/Medications Section (entries required) (V2)_2.16.840.1.113883.10.20.22.2.1.1/Medications Section (entries required) (V2) Example.xml | 1/1 | 1/1 | 100.0% | 2 |
 | corpus/C-CDA-Examples/Guide Examples/Mental Status Section (V2)_2.16.840.1.113883.10.20.22.2.56/Mental Status Section Example.xml | 1/1 | 2/3 | 50.0% | 3 |
-| corpus/C-CDA-Examples/Guide Examples/Note Activity_2.16.840.1.113883.10.20.22.4.202/Note Activity as Standalone Entry.xml | 1/1 | 1/1 | 100.0% | 0 |
+| corpus/C-CDA-Examples/Guide Examples/Note Activity_2.16.840.1.113883.10.20.22.4.202/Note Activity as Standalone Entry.xml | 1/1 | 1/1 | 100.0% | 1 |
 | corpus/C-CDA-Examples/Guide Examples/Note Activity_2.16.840.1.113883.10.20.22.4.202/Note Activity as entryRelationship to C-CDA Entry.xml | 1/1 | 1/1 | 45.5% | 0 |
 | corpus/C-CDA-Examples/Guide Examples/Note Activity_2.16.840.1.113883.10.20.22.4.202/RTF Example.xml | 0/1 | 0/1 | — | 1 |
 | corpus/C-CDA-Examples/Guide Examples/Notes Section_2.16.840.1.113883.10.20.22.2.65/Note Section Example.xml | 1/1 | 1/1 | 100.0% | 0 |
@@ -299,7 +300,7 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/C-CDA-Examples/Guide Examples/Postprocedure Diagnosis (V3)_2.16.840.1.113883.10.20.22.4.51/Postprocedure Diagnosis (V3) Example.xml | 0/1 | 0/1 | — | 1 |
 | corpus/C-CDA-Examples/Guide Examples/Postprocedure Diagnosis Section (V3)_2.16.840.1.113883.10.20.22.2.36/Postprocedure Diagnosis Section (V3) Example.xml | 0/1 | 0/1 | — | 1 |
 | corpus/C-CDA-Examples/Guide Examples/Preoperative Diagnosis Section (V3)_2.16.840.1.113883.10.20.22.2.34/Preoperative Diagnosis Section (V3) Example.xml | 0/1 | 0/1 | — | 1 |
-| corpus/C-CDA-Examples/Guide Examples/Problem Section (entries required) (V3)_2.16.840.1.113883.10.20.22.2.5.1/No Known Problems Section Example.xml | 1/1 | 1/1 | 42.9% | 1 |
+| corpus/C-CDA-Examples/Guide Examples/Problem Section (entries required) (V3)_2.16.840.1.113883.10.20.22.2.5.1/No Known Problems Section Example.xml | 1/1 | 1/1 | 42.9% | 2 |
 | corpus/C-CDA-Examples/Guide Examples/Problem Section (entries required) (V3)_2.16.840.1.113883.10.20.22.2.5.1/Problem Section (entries required) (V3) Example.xml | 1/1 | 1/1 | 100.0% | 1 |
 | corpus/C-CDA-Examples/Guide Examples/Procedure Description Section_2.16.840.1.113883.10.20.22.2.27/Procedure Description Section Example.xml | 1/1 | 0/0 | 100.0% | 0 |
 | corpus/C-CDA-Examples/Guide Examples/Procedure Disposition Section_2.16.840.1.113883.10.20.18.2.12/Procedure Disposition Section Example.xml | 1/1 | 0/0 | 100.0% | 0 |
@@ -328,9 +329,9 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/C-CDA-Examples/Health Concerns/Health Concerns Narrative Only/Health Concerns Narrative Only(C-CDA2.1).xml | 1/1 | 1/1 | 50.0% | 0 |
 | corpus/C-CDA-Examples/Health Concerns/No Known Health Concerns/No Known Health Concerns(C-CDA2.1).xml | 1/1 | 1/1 | 6.7% | 0 |
 | corpus/C-CDA-Examples/Immunizations/Immunization not given Patient refused/Immunization not given Patient refused(C-CDA2.1).xml | 1/1 | 1/1 | 83.3% | 0 |
-| corpus/C-CDA-Examples/Immunizations/Influenza Vaccination/Influenza Vaccination(C-CDA2.1).xml | 1/1 | 1/1 | 72.2% | 0 |
-| corpus/C-CDA-Examples/Immunizations/Influenza Vaccination - Patient Reported/Influenza Vaccination Patient Reported(C-CDA2.1).xml | 1/1 | 1/1 | 22.2% | 0 |
-| corpus/C-CDA-Examples/Immunizations/Influenza Vaccination with NDC/Influenza Vaccination with NDC(C-CDA2.1).xml | 1/1 | 1/1 | 73.7% | 0 |
+| corpus/C-CDA-Examples/Immunizations/Influenza Vaccination/Influenza Vaccination(C-CDA2.1).xml | 1/1 | 1/1 | 94.4% | 0 |
+| corpus/C-CDA-Examples/Immunizations/Influenza Vaccination - Patient Reported/Influenza Vaccination Patient Reported(C-CDA2.1).xml | 1/1 | 1/1 | 50.0% | 0 |
+| corpus/C-CDA-Examples/Immunizations/Influenza Vaccination with NDC/Influenza Vaccination with NDC(C-CDA2.1).xml | 1/1 | 1/1 | 94.7% | 0 |
 | corpus/C-CDA-Examples/Immunizations/No Section Information Immunizations/No Information Immunizations(C-CDA2.1).xml | 1/1 | 0/0 | 100.0% | 0 |
 | corpus/C-CDA-Examples/Immunizations/Unknown Immunization Status/Unknown Immunization Status(C-CDA2.1).xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/C-CDA-Examples/Interventions/Intervention Counseling/Intervention Counseling Procedure Activity Act(C-CDR2.1).xml | 0/1 | 0/1 | — | 0 |
@@ -356,10 +357,10 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/C-CDA-Examples/Mental Status/Memory Impairment/Memory Impairment(C-CDAR2.1).xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/C-CDA-Examples/Mental Status/No Cognitive Impairment/No Cognitive Impairment(C-CDAR2.1).xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/C-CDA-Examples/Mental Status/Patient Health Questionnaire PHQ-9/Patient Health Questionnaire PHQ-9(C-CDAR2.1).xml | 1/1 | 1/1 | 80.6% | 0 |
-| corpus/C-CDA-Examples/Notes/Discharge Note in Hospital Course/Discharge Note(C-CDAR2.1).xml | 1/1 | 1/1 | 71.4% | 1 |
+| corpus/C-CDA-Examples/Notes/Discharge Note in Hospital Course/Discharge Note(C-CDAR2.1).xml | 1/1 | 1/1 | 71.4% | 2 |
 | corpus/C-CDA-Examples/Notes/Note directly attached to a Procedure/Note directly attached to a Procedure(C-CDAR2.1).xml | 1/1 | 1/1 | 45.5% | 1 |
 | corpus/C-CDA-Examples/Notes/RTF Note/RTF Note (C-CDA R2.1).xml | 1/1 | 1/1 | 100.0% | 0 |
-| corpus/C-CDA-Examples/Notes/Single Consultation Note/Single Consultation Note(C-CDA R2.1).xml | 1/1 | 1/1 | 100.0% | 0 |
+| corpus/C-CDA-Examples/Notes/Single Consultation Note/Single Consultation Note(C-CDA R2.1).xml | 1/1 | 1/1 | 100.0% | 1 |
 | corpus/C-CDA-Examples/Plan of Treatment/Care Plan Goals and Instructions/Care Plan Goals and Instructions(C-CDAR2.1).xml | 1/1 | 2/2 | 38.5% | 0 |
 | corpus/C-CDA-Examples/Plan of Treatment/No Planned Tests/No Planned Tests(C-CDAR2.1).xml | 1/1 | 2/2 | 71.4% | 0 |
 | corpus/C-CDA-Examples/Plan of Treatment/Planned EKG/Planned EKG(C-CDAR2.1).xml | 1/1 | 1/1 | 100.0% | 0 |
@@ -397,7 +398,7 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/C-CDA-Examples/Results/Results with less than specific value/Results with less than specific value(C-CDA2.1).xml | 1/1 | 1/1 | 78.6% | 0 |
 | corpus/C-CDA-Examples/Results/Results with translation unit/Results with translation unit(C-CDA2.1).xml | 1/1 | 1/1 | 62.5% | 0 |
 | corpus/C-CDA-Examples/Social History/Current Smoking Status/Current Smoking Status(C-CDA2.1).xml | 1/1 | 2/2 | 84.2% | 0 |
-| corpus/C-CDA-Examples/Social History/Electronic Cigarette/Electronic Cigarette Status(C-CDA2.1).xml | 1/1 | 1/1 | 83.3% | 0 |
+| corpus/C-CDA-Examples/Social History/Electronic Cigarette/Electronic Cigarette Status(C-CDA2.1).xml | 1/1 | 1/1 | 83.3% | 1 |
 | corpus/C-CDA-Examples/Social History/Former Smoking Status/Former Smoking Status(C-CDA2.1).xml | 1/1 | 2/2 | 80.0% | 0 |
 | corpus/C-CDA-Examples/Social History/Never Smoking Status/Never Smoking Status(C-CDA2.1).xml | 1/1 | 1/1 | 80.0% | 0 |
 | corpus/C-CDA-Examples/Social History/Not Pregnant/Not Pregnant (C-CDAR2.1).xml | 1/1 | 1/1 | 75.0% | 0 |
@@ -467,9 +468,9 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/CDA-Examples/input/examples/health-concerns-narrative-only.xml | 1/1 | 1/1 | 50.0% | 0 |
 | corpus/CDA-Examples/input/examples/health-concerns-no-known-health-concerns.xml | 1/1 | 1/1 | 6.7% | 0 |
 | corpus/CDA-Examples/input/examples/immunizations-immunization-not-given-patient-refused.xml | 1/1 | 1/1 | 85.7% | 0 |
-| corpus/CDA-Examples/input/examples/immunizations-influenza-vaccination-patient-reported.xml | 1/1 | 1/1 | 20.0% | 0 |
-| corpus/CDA-Examples/input/examples/immunizations-influenza-vaccination-with-ndc.xml | 1/1 | 1/1 | 73.7% | 0 |
-| corpus/CDA-Examples/input/examples/immunizations-influenza-vaccination.xml | 1/1 | 1/1 | 72.2% | 0 |
+| corpus/CDA-Examples/input/examples/immunizations-influenza-vaccination-patient-reported.xml | 1/1 | 1/1 | 55.0% | 0 |
+| corpus/CDA-Examples/input/examples/immunizations-influenza-vaccination-with-ndc.xml | 1/1 | 1/1 | 94.7% | 0 |
+| corpus/CDA-Examples/input/examples/immunizations-influenza-vaccination.xml | 1/1 | 1/1 | 94.4% | 0 |
 | corpus/CDA-Examples/input/examples/immunizations-no-section-information-immunizations.xml | 1/1 | 0/0 | 100.0% | 0 |
 | corpus/CDA-Examples/input/examples/immunizations-unknown-immunization-status.xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/CDA-Examples/input/examples/interventions-intervention-counseling.xml | 0/1 | 0/1 | — | 0 |
@@ -492,10 +493,10 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/CDA-Examples/input/examples/mental-status-memory-impairment.xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/CDA-Examples/input/examples/mental-status-no-cognitive-impairment.xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/CDA-Examples/input/examples/mental-status-patient-health-questionnaire.xml | 1/1 | 1/1 | 80.6% | 0 |
-| corpus/CDA-Examples/input/examples/notes-discharge-note-in-hospital-course.xml | 1/1 | 1/1 | 71.4% | 0 |
+| corpus/CDA-Examples/input/examples/notes-discharge-note-in-hospital-course.xml | 1/1 | 1/1 | 71.4% | 1 |
 | corpus/CDA-Examples/input/examples/notes-note-directly-attached-to-a-procedure.xml | 1/1 | 1/1 | 45.5% | 0 |
-| corpus/CDA-Examples/input/examples/notes-rtf-note.xml | 1/1 | 1/1 | 100.0% | 0 |
-| corpus/CDA-Examples/input/examples/notes-single-consultation-note.xml | 1/1 | 1/1 | 100.0% | 0 |
+| corpus/CDA-Examples/input/examples/notes-rtf-note.xml | 1/1 | 1/1 | 100.0% | 1 |
+| corpus/CDA-Examples/input/examples/notes-single-consultation-note.xml | 1/1 | 1/1 | 100.0% | 1 |
 | corpus/CDA-Examples/input/examples/plan-of-treatment-care-plan-goals-and-instructions.xml | 1/1 | 2/2 | 38.5% | 0 |
 | corpus/CDA-Examples/input/examples/plan-of-treatment-no-planned-tests.xml | 1/1 | 2/2 | 71.4% | 0 |
 | corpus/CDA-Examples/input/examples/plan-of-treatment-planned-ekg.xml | 1/1 | 1/1 | 100.0% | 0 |
@@ -534,7 +535,7 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/CDA-Examples/input/examples/results-with-translation-unit.xml | 1/1 | 1/1 | 62.5% | 0 |
 | corpus/CDA-Examples/input/examples/social-history-birth-sex.xml | — | — | — | error: skipped: neither a document nor a section |
 | corpus/CDA-Examples/input/examples/social-history-current-smoking-status.xml | 1/1 | 2/2 | 84.2% | 0 |
-| corpus/CDA-Examples/input/examples/social-history-electronic-cigarette.xml | 1/1 | 1/1 | 83.3% | 0 |
+| corpus/CDA-Examples/input/examples/social-history-electronic-cigarette.xml | 1/1 | 1/1 | 83.3% | 1 |
 | corpus/CDA-Examples/input/examples/social-history-former-smoking-status.xml | 1/1 | 2/2 | 80.0% | 0 |
 | corpus/CDA-Examples/input/examples/social-history-never-smoking-status.xml | 1/1 | 1/1 | 80.0% | 0 |
 | corpus/CDA-Examples/input/examples/social-history-not-pregnant.xml | 1/1 | 1/1 | 75.0% | 0 |
@@ -551,168 +552,168 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (451), no-a-p 
 | corpus/CDA-Examples/input/examples/vital-signs-panel-of-vital-signs-in-metric-units.xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/CDA-Examples/input/examples/vital-signs-panel-of-vital-signs-in-mixed-metric-imperial-units.xml | 1/1 | 1/1 | 100.0% | 0 |
 | corpus/CDA-Examples/input/examples/vital-signs-panel-of-vital-signs-oxygen-concentration-included.xml | 1/1 | 1/1 | 100.0% | 0 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r11_sample1_v9.xml | 12/12 | 15/15 | 78.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r21_sample1_v13.xml | 17/17 | 32/33 | 80.6% | 2 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r11_sample1_v9.xml | 12/12 | 15/15 | 78.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r21_sample1_v13.xml | 17/17 | 32/33 | 83.3% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r21_sample2_v11.xml | 16/16 | 11/11 | 78.9% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_rn_r21_sample1_v13.xml | 17/17 | 32/33 | 80.6% | 2 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_rn_r21_sample1_v13.xml | 17/17 | 32/33 | 83.3% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_rn_r21_sample2_v11.xml | 17/17 | 11/11 | 78.9% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r11_sample1_v9.xml | 15/15 | 19/19 | 69.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r21_sample1_v12.xml | 19/19 | 43/44 | 83.1% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r11_sample1_v9.xml | 15/15 | 19/19 | 69.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r21_sample1_v12.xml | 19/19 | 43/44 | 85.0% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r21_sample2_v12.xml | 20/20 | 15/15 | 84.1% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ds_r21_sample1_v12.xml | 21/21 | 43/44 | 83.1% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ds_r21_sample1_v12.xml | 21/21 | 43/44 | 84.9% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ds_r21_sample2_v12.xml | 22/22 | 15/15 | 83.8% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_r11_sample1_v8.xml | 15/15 | 19/19 | 69.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_rn_r21_sample1_v12.xml | 20/20 | 43/44 | 83.2% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_r11_sample1_v8.xml | 15/15 | 19/19 | 69.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_rn_r21_sample1_v12.xml | 20/20 | 43/44 | 85.0% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_rn_r21_sample2_v12.xml | 21/21 | 15/15 | 84.1% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 2 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 1 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 5 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_ccd_recon_v11.xml | 17/17 | 9/9 | 91.1% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_ccd_v11.xml | 17/17 | 6/6 | 94.2% | 3 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_rn_recon_v11.xml | 17/17 | 9/9 | 91.5% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_rn_v11.xml | 17/17 | 6/6 | 94.2% | 3 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 2 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 1 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 5 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ccd_recon_v11.xml | 17/17 | 9/9 | 91.1% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ccd_v11.xml | — | — | — | error: to FHIR: 67:5: not well-formed XML: expected '>' not '<' at 67:5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ds_recon_v11.xml | 22/22 | 11/11 | 92.0% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ds_v11.xml | 22/22 | 7/7 | 93.7% | 2 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_rn_recon_v11.xml | 17/17 | 9/9 | 91.5% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_rn_v11.xml | 17/17 | 6/6 | 94.2% | 3 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_ccd_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_ccd_r21_sample1_v12.xml | 17/17 | 32/33 | 80.6% | 2 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_ccd_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_ccd_r21_sample1_v12.xml | 17/17 | 32/33 | 83.3% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_ccd_r21_sample2_v11.xml | 16/16 | 11/11 | 78.9% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_rn_r21_sample1_v12.xml | 17/17 | 32/33 | 80.6% | 2 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_rn_r21_sample1_v12.xml | 17/17 | 32/33 | 83.3% | 4 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Amb/170.315_b5_toc_amb_rn_r21_sample2_v11.xml | 17/17 | 11/11 | 78.9% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ccd_r11_sample1_v9.xml | 15/15 | 19/19 | 69.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ccd_r21_sample1_v12.xml | 19/19 | 43/44 | 83.1% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ccd_r11_sample1_v9.xml | 15/15 | 19/19 | 69.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ccd_r21_sample1_v12.xml | 19/19 | 43/44 | 85.0% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ccd_r21_sample2_v12.xml | 20/20 | 15/15 | 84.1% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ds_r21_sample1_v12.xml | 21/21 | 43/44 | 83.1% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ds_r21_sample1_v12.xml | 21/21 | 43/44 | 84.9% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_ds_r21_sample2_v12.xml | 22/22 | 15/15 | 83.8% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_r11_sample1_v8.xml | 15/15 | 19/19 | 69.5% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_rn_r21_sample1_v12.xml | 20/20 | 43/44 | 83.2% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_r11_sample1_v8.xml | 15/15 | 19/19 | 69.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_rn_r21_sample1_v12.xml | 20/20 | 43/44 | 85.0% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b5_CCDS_Inp/170.315_b5_toc_inp_rn_r21_sample2_v12.xml | 21/21 | 15/15 | 84.1% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample1_v8.xml | 16/17 | 30/32 | 82.7% | 2 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample2_v4.xml | 16/16 | 27/28 | 82.7% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample1_v7.xml | 19/20 | 43/45 | 83.1% | 3 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample2_v4.xml | 19/19 | 31/32 | 81.6% | 2 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b9_CP_Amb/170.315_b9_cp_amb_sample1_v6.xml | 2/4 | 2/6 | 62.4% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b9_CP_Inp/170.315_b9_cp_inp_sample1_v6.xml | 2/4 | 2/6 | 62.4% | 1 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample1_v8.xml | 16/17 | 30/32 | 85.5% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample2_v4.xml | 16/16 | 27/28 | 85.7% | 3 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample1_v7.xml | 19/20 | 43/45 | 85.0% | 5 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample2_v4.xml | 19/19 | 31/32 | 83.9% | 4 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b9_CP_Amb/170.315_b9_cp_amb_sample1_v6.xml | 2/4 | 2/6 | 66.0% | 2 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/170.315_b9_CP_Inp/170.315_b9_cp_inp_sample1_v6.xml | 2/4 | 2/6 | 66.0% | 2 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_BadXml_r11_v2.xml | — | — | — | error: to FHIR: 59:4: not well-formed XML: invalid name token at 59:4 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_AllergyConcernElements_r11_v3.xml | 15/15 | 24/25 | 64.8% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_AllergyIntoleranceObservationElements_r11_v3.xml | 15/15 | 28/28 | 63.6% | 12 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_AllergySectionCode_r11_v2.xml | 15/15 | 24/24 | 61.3% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_DocCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_DocEffectiveTime_r11_v2.xml | 15/15 | 24/24 | 66.8% | 6 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_DocTypeId_r11_v2.xml | 15/15 | 24/24 | 66.8% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_EthnicityCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_EthnicityCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_GenderCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_GenderCode_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationActivityElements_r11_v3.xml | 15/15 | 29/30 | 49.8% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationInformationElements_r11_v3.xml | 15/15 | 27/27 | 57.5% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationSectionCode_r11_v2.xml | 15/15 | 24/24 | 62.6% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 73.5% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientFirstName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientLastName_r1_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientMiddleName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientPreviousName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientSuffix_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PreferredLanguageCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.7% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemConcernElements_r11_v3.xml | 15/15 | 25/26 | 63.7% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemObservationElements_r11_v3.xml | 15/15 | 31/31 | 60.4% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemSectionCode_r11_v2.xml | 15/15 | 24/24 | 64.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 69.7% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_RaceCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_AllergyConcernElements_r11_v3.xml | 15/15 | 24/25 | 64.8% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_AllergyIntoleranceObservationElements_r11_v3.xml | 15/15 | 28/28 | 63.6% | 15 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_AllergySectionCode_r11_v2.xml | 15/15 | 24/24 | 61.3% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_DocCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_DocEffectiveTime_r11_v2.xml | 15/15 | 24/24 | 66.8% | 9 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_DocTypeId_r11_v2.xml | 15/15 | 24/24 | 66.8% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_EthnicityCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_EthnicityCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_GenderCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_GenderCode_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationActivityElements_r11_v3.xml | 15/15 | 29/30 | 49.8% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationInformationElements_r11_v3.xml | 15/15 | 27/27 | 57.5% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationSectionCode_r11_v2.xml | 15/15 | 24/24 | 62.6% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_MedicationSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 73.5% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientFirstName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientLastName_r1_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientMiddleName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientPreviousName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PatientSuffix_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_PreferredLanguageCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.7% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemConcernElements_r11_v3.xml | 15/15 | 25/26 | 63.7% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemObservationElements_r11_v3.xml | 15/15 | 31/31 | 60.4% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemSectionCode_r11_v2.xml | 15/15 | 24/24 | 64.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_ProblemSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 69.7% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Bad_RaceCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_CCDS_Sample1_r21_v4.xml | 19/19 | 28/28 | 27.0% | 3 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_CCDS_Sample2_r21_v4.xml | 10/19 | 28/28 | 93.3% | 3 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_CCDS_Sample3_r21_v4.xml | 19/19 | 6/16 | 50.2% | 1 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_CCDS_Sample4_r21_v4.xml | 19/19 | 28/28 | 84.9% | 5 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_CCDS_Sample5_r21_v4.xml | 19/19 | 28/28 | 85.4% | 3 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Missing_PatientLastName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Missing_PatientName_r11_v2.xml | 15/15 | 24/24 | 66.7% | 5 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Missing_PatientLastName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CCDS/NT_Missing_PatientName_r11_v2.xml | 15/15 | 24/24 | 66.7% | 8 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample1_r21_v5.xml | 18/18 | 25/25 | 85.7% | 3 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample2_r21_v4.xml | 2/4 | 2/7 | 48.9% | 1 |
-| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample3_r21_v4.xml | 0/4 | 2/7 | 97.2% | 1 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample2_r21_v4.xml | 2/4 | 2/7 | 48.9% | 2 |
+| corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample3_r21_v4.xml | 0/4 | 2/7 | 97.2% | 2 |
 | corpus/2015-certification-ccda-testdata/Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample4_r21_v4.xml | 2/4 | 0/7 | 50.4% | 1 |
-| corpus/2015-certification-ccda-testdata/Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_gold_sample1_v6.xml | 19/19 | 31/32 | 82.2% | 2 |
+| corpus/2015-certification-ccda-testdata/Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_gold_sample1_v6.xml | 19/19 | 31/32 | 84.9% | 4 |
 | corpus/2015-certification-ccda-testdata/Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_gold_sample2_v4.xml | 20/20 | 15/15 | 83.2% | 0 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r11_sample1_v9.xml | 12/12 | 15/15 | 78.5% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r21_sample1_v13.xml | 17/17 | 32/33 | 80.6% | 2 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r11_sample1_v9.xml | 12/12 | 15/15 | 78.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r21_sample1_v13.xml | 17/17 | 32/33 | 83.3% | 4 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_ccd_r21_sample2_v11.xml | 16/16 | 11/11 | 78.9% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_rn_r21_sample1_v13.xml | 17/17 | 32/33 | 80.6% | 2 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_r11_sample1_v8.xml | 12/12 | 15/15 | 78.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_rn_r21_sample1_v13.xml | 17/17 | 32/33 | 83.3% | 4 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Amb/170.315_b1_toc_amb_rn_r21_sample2_v11.xml | 17/17 | 11/11 | 78.9% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r11_sample1_v9.xml | 15/15 | 19/19 | 69.5% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r21_sample1_v12.xml | 19/19 | 43/44 | 83.1% | 3 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r11_sample1_v9.xml | 15/15 | 19/19 | 69.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r21_sample1_v12.xml | 19/19 | 43/44 | 85.0% | 5 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ccd_r21_sample2_v12.xml | 20/20 | 15/15 | 84.1% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ds_r21_sample1_v12.xml | 21/21 | 43/44 | 83.1% | 3 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ds_r21_sample1_v12.xml | 21/21 | 43/44 | 84.9% | 5 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_ds_r21_sample2_v12.xml | 22/22 | 15/15 | 83.8% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_r11_sample1_v8.xml | 15/15 | 19/19 | 69.5% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_rn_r21_sample1_v12.xml | 20/20 | 43/44 | 83.2% | 3 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_r11_sample1_v8.xml | 15/15 | 19/19 | 69.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_rn_r21_sample1_v12.xml | 20/20 | 43/44 | 85.0% | 5 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b1_ToC_Inp/170.315_b1_toc_inp_rn_r21_sample2_v12.xml | 21/21 | 15/15 | 84.1% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 2 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_ccd_recon_v12.xml | 17/17 | 10/10 | 89.8% | 3 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 5 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_ccd_recon_v12.xml | 17/17 | 10/10 | 89.8% | 4 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_ccd_v12.xml | 17/17 | 6/6 | 94.2% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_rn_recon_v12.xml | 17/17 | 10/10 | 90.2% | 3 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_rn_recon_v12.xml | 17/17 | 10/10 | 90.2% | 4 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Amb/170.315_b2_ciri__r21_sample1_rn_v12.xml | 17/17 | 6/6 | 94.2% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 2 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 1 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_recon_v10.xml | 15/15 | 21/21 | 80.4% | 5 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r11_sample1_v10.xml | 15/15 | 21/21 | 82.5% | 4 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ccd_recon_v12.xml | 17/17 | 10/10 | 89.9% | 3 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ccd_v12.xml | 17/17 | 6/6 | 94.2% | 1 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ds_recon_v12.xml | 22/22 | 12/12 | 90.9% | 3 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_ds_v12.xml | 22/22 | 7/7 | 93.8% | 1 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_rn_recon_v12.xml | 17/17 | 10/10 | 90.3% | 3 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b2_CIRI_Inp/170.315_b2_ciri__r21_sample1_rn_v12.xml | 17/17 | 6/6 | 94.2% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample1_v8.xml | 16/17 | 30/32 | 82.7% | 2 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample2_v4.xml | 16/16 | 27/28 | 82.7% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample1_v7.xml | 19/20 | 43/45 | 83.1% | 3 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample2_v4.xml | 19/19 | 31/32 | 81.6% | 2 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b9_CP_Amb/170.315_b9_cp_amb_sample1_v6.xml | 2/4 | 2/6 | 62.4% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b9_CP_Inp/170.315_b9_cp_inp_sample1_v6.xml | 2/4 | 2/6 | 62.4% | 1 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample1_v8.xml | 16/17 | 30/32 | 85.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Amb/170.315_b8_ds4p_amb_sample2_v4.xml | 16/16 | 27/28 | 85.7% | 3 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample1_v7.xml | 19/20 | 43/45 | 85.0% | 5 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b8_DS4P_Inp/170.315_b8_ds4p_inp_sample2_v4.xml | 19/19 | 31/32 | 83.9% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b9_CP_Amb/170.315_b9_cp_amb_sample1_v6.xml | 2/4 | 2/6 | 66.0% | 2 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/170.315_b9_CP_Inp/170.315_b9_cp_inp_sample1_v6.xml | 2/4 | 2/6 | 66.0% | 2 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample1_r21_v5.xml | 18/18 | 25/25 | 85.7% | 3 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample2_r21_v4.xml | 2/4 | 2/7 | 48.9% | 1 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample3_r21_v4.xml | 0/4 | 2/7 | 97.2% | 1 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample2_r21_v4.xml | 2/4 | 2/7 | 48.9% | 2 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample3_r21_v4.xml | 0/4 | 2/7 | 97.2% | 2 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_CarePlan/NT_CP_Sample4_r21_v4.xml | 2/4 | 0/7 | 50.4% | 1 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_BadXml_r11_v2.xml | — | — | — | error: to FHIR: 59:4: not well-formed XML: invalid name token at 59:4 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_AllergyConcernElements_r11_v3.xml | 15/15 | 24/25 | 64.8% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_AllergyIntoleranceObservationElements_r11_v3.xml | 15/15 | 28/28 | 63.6% | 12 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_AllergySectionCode_r11_v2.xml | 15/15 | 24/24 | 61.3% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_DocCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_DocEffectiveTime_r11_v2.xml | 15/15 | 24/24 | 66.8% | 6 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_DocTypeId_r11_v2.xml | 15/15 | 24/24 | 66.8% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_EthnicityCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_EthnicityCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_GenderCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_GenderCode_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationActivityElements_r11_v3.xml | 15/15 | 29/30 | 49.8% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationInformationElements_r11_v3.xml | 15/15 | 27/27 | 57.5% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationSectionCode_r11_v2.xml | 15/15 | 24/24 | 62.6% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 73.5% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientFirstName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientLastName_r1_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientMiddleName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientPreviousName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientSuffix_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PreferredLanguageCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.7% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemConcernElements_r11_v3.xml | 15/15 | 25/26 | 63.7% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemObservationElements_r11_v3.xml | 15/15 | 31/31 | 60.4% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemSectionCode_r11_v2.xml | 15/15 | 24/24 | 64.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 69.7% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_RaceCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Missing_PatientLastName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 5 |
-| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Missing_PatientName_r11_v2.xml | 15/15 | 24/24 | 66.7% | 5 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_AllergyConcernElements_r11_v3.xml | 15/15 | 24/25 | 64.8% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_AllergyIntoleranceObservationElements_r11_v3.xml | 15/15 | 28/28 | 63.6% | 15 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_AllergySectionCode_r11_v2.xml | 15/15 | 24/24 | 61.3% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_DocCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_DocEffectiveTime_r11_v2.xml | 15/15 | 24/24 | 66.8% | 9 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_DocTypeId_r11_v2.xml | 15/15 | 24/24 | 66.8% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_EthnicityCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_EthnicityCode_r11_v2.xml | 15/15 | 24/24 | 66.8% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_GenderCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_GenderCode_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationActivityElements_r11_v3.xml | 15/15 | 29/30 | 49.8% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationInformationElements_r11_v3.xml | 15/15 | 27/27 | 57.5% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationSectionCode_r11_v2.xml | 15/15 | 24/24 | 62.6% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_MedicationSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 73.5% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientFirstName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientLastName_r1_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientMiddleName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientPreviousName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PatientSuffix_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_PreferredLanguageCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.7% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemConcernElements_r11_v3.xml | 15/15 | 25/26 | 63.7% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemObservationElements_r11_v3.xml | 15/15 | 31/31 | 60.4% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemSectionCode_r11_v2.xml | 15/15 | 24/24 | 64.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_ProblemSectionTemplateId_r11_v3.xml | 14/15 | 24/24 | 69.7% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Bad_RaceCodeSystem_r11_v2.xml | 15/15 | 24/24 | 66.6% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Missing_PatientLastName_r11_v2.xml | 15/15 | 24/24 | 67.0% | 8 |
+| corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_Missing_PatientName_r11_v2.xml | 15/15 | 24/24 | 66.7% | 8 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_USCDI_Sample1_r21_v4.xml | 19/19 | 28/28 | 27.0% | 3 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_USCDI_Sample2_r21_v4.xml | 10/19 | 28/28 | 93.3% | 3 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_USCDI_Sample3_r21_v4.xml | 19/19 | 6/16 | 50.2% | 1 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_USCDI_Sample4_r21_v4.xml | 19/19 | 28/28 | 84.9% | 5 |
 | corpus/2015-edition-cures-update-data/Cures Update Receiver SUT Test Data/NegativeTesting_USCDI/NT_USCDI_Sample5_r21_v4.xml | 19/19 | 28/28 | 85.4% | 3 |
-| corpus/2015-edition-cures-update-data/Cures Update Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_cures_sample3.xml | 23/24 | 25/26 | 83.5% | 2 |
-| corpus/2015-edition-cures-update-data/Cures Update Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_gold_sample1_v6.xml | 20/20 | 34/35 | 86.0% | 2 |
+| corpus/2015-edition-cures-update-data/Cures Update Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_cures_sample3.xml | 23/24 | 25/26 | 85.5% | 4 |
+| corpus/2015-edition-cures-update-data/Cures Update Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_gold_sample1_v6.xml | 20/20 | 34/35 | 88.5% | 4 |
 | corpus/2015-edition-cures-update-data/Cures Update Sender SUT Test Data/Gold_Samples_For_Practice/170.315_b1_toc_gold_sample2_v4.xml | 21/21 | 16/16 | 86.1% | 0 |
-| corpus/2015-edition-cures-update-data/Security-tags-Summary-of-Care-receive-sample1.xml | 16/17 | 30/32 | 82.8% | 2 |
+| corpus/2015-edition-cures-update-data/Security-tags-Summary-of-Care-receive-sample1.xml | 16/17 | 30/32 | 85.5% | 4 |
 
 ## Agreement with the C-CDA on FHIR consensus outputs
 

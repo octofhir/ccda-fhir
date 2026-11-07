@@ -2,7 +2,7 @@
 /// name = 'FhirStatusToCda'
 /// title = 'US Core functional and cognitive status to C-CDA'
 /// status = 'active'
-/// description = 'US Core 6.1.0 Observations of the functional-status and cognitive-status categories to Functional Status and Mental Status entries (C-CDA 5.0.0): panels as organizers, screening and assessment as Assessment Scale Observations, others as status observations. The inverse of cda-status-to-fhir.'
+/// description = 'US Core 6.1.0 Observations of the functional-status and cognitive-status categories to Functional Status and Mental Status entries (C-CDA 5.0.0): panels as organizers, screening and assessment as Assessment Scale Observations, others as status observations; US Core Provenance authors as their authors. The inverse of cda-status-to-fhir.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-status-to-cda" = "FhirStatusToCda"
 
@@ -41,6 +41,7 @@ group StatusOrganizer(source panel : Observation, source bundle : Bundle, source
       entry.resource : Observation as member -> organizer.component as component, component.observation as cda then StatusObservationToCda(member, bundle, kind, cda);
     };
   };
+  panel where (id.exists()) -> evaluate(panel, %bundle.entry.where(resource.is(Observation) and resource.id = %panel.id).fullUrl.first()) as ownUrl, evaluate(panel, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, organizer);
 }
 
 // A status observation: the template's code (54522-8 Functional status, 8693-4 Mental status) with

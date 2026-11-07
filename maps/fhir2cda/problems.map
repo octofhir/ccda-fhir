@@ -2,7 +2,7 @@
 /// name = 'FhirProblemsToCda'
 /// title = 'US Core Condition to C-CDA problems'
 /// status = 'active'
-/// description = 'US Core 6.1.0 Condition to a Problem Concern act with a Problem observation, after "Problems FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+/// description = 'US Core 6.1.0 Condition to a Problem Concern act with a Problem observation (its authors the recorder and the US Core Provenance authors), after "Problems FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-problems-to-cda" = "FhirProblemsToCda"
 
@@ -61,6 +61,7 @@ group ConditionToObservation(source condition : Condition, source bundle : Bundl
   condition.code as code -> observation.value = create('CD') as value then CodeableConceptToCD(code, value);
   condition where (code.empty()) -> observation.value = create('CD') as value, value.nullFlavor = 'UNK';
   condition.recorder as ref -> evaluate(condition, iif(recordedDate.hasValue(), recordedDate, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, observation);
+  condition where (id.exists()) -> evaluate(condition, %bundle.entry.where(resource.is(Condition) and resource.id = %condition.id).fullUrl.first()) as ownUrl, evaluate(condition, iif(recorder.reference.exists(), '|' + recorder.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, observation);
   condition.clinicalStatus as status then {
     status.coding first as coding then {
       coding.code as c -> observation.entryRelationship as relationship, relationship.typeCode = 'REFR', relationship.observation as statusObservation then {

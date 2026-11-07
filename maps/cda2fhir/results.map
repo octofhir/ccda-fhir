@@ -2,7 +2,7 @@
 /// name = 'CdaResultsToFhir'
 /// title = 'C-CDA results to US Core DiagnosticReport and Observation'
 /// status = 'active'
-/// description = 'Result Organizers to US Core 6.1.0 DiagnosticReport (Lab) and Result Observations to Laboratory Result Observation, after "Results CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Result Organizers to US Core 6.1.0 DiagnosticReport (Lab) and Result Observations to Laboratory Result Observation, the authors of both US Core Provenance, after "Results CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir" = "CdaResultsToFhir"
 
@@ -34,7 +34,11 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
 
 group ResultsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.organizer : ResultOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('DiagnosticReport') as report, uuid() as id, report.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), report.subject as subject, subject.reference = append('urn:uuid:', patientId) then DiagnosticReport(organizer, report, bundle, patientId);
+    entry.organizer : ResultOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('DiagnosticReport') as report, uuid() as id, report.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), report.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      organizer then DiagnosticReport(organizer, report, bundle, patientId);
+      // CF-results: `/author` → Provenance.
+      organizer.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 
@@ -69,7 +73,10 @@ group DiagnosticReport(source organizer : ResultOrganizer, target report : Diagn
   // Specimens (CF-results): the organizer's, with the Specimen Collection Procedure's body site.
   organizer.specimen as specimen -> bundle.entry as entry, entry.resource = create('Specimen') as resource, uuid() as id, resource.id = id, entry.fullUrl = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId), report.specimen as ref, ref.reference = append('urn:uuid:', id) then SpecimenToSpecimen(specimen, organizer, resource);
   organizer.component as component then {
-    component.observation : ResultObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as result, uuid() as id, result.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), report.result as ref, ref.reference = append('urn:uuid:', id), result.subject as subject, subject.reference = append('urn:uuid:', patientId) then ResultObservation(observation, result, bundle, patientId);
+    component.observation : ResultObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as result, uuid() as id, result.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), report.result as ref, ref.reference = append('urn:uuid:', id), result.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      observation then ResultObservation(observation, result, bundle, patientId);
+      observation.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

@@ -2,7 +2,7 @@
 /// name = 'CdaDevicesToFhir'
 /// title = 'C-CDA devices to FHIR Device'
 /// status = 'active'
-/// description = 'Product Instance (with its UDI Organizer) to Device — US Core 6.1.0 implantable device for implants, the products of procedures — and Non-Medicinal Supply Activities as Devices. C-CDA on FHIR 2.0.0 has no table for devices.'
+/// description = 'Product Instance (with its UDI Organizer) to Device — US Core 6.1.0 implantable device for implants, the products of procedures — and Non-Medicinal Supply Activities as Devices, the authors of the supply as US Core Provenance. C-CDA on FHIR 2.0.0 has no table for devices.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-devices-to-fhir" = "CdaDevicesToFhir"
 
@@ -25,11 +25,15 @@ uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
 
 // A supply of equipment: a Device for each product it names.
 group SupplyDevices(source supply, target compositionSection, target bundle : Bundle, source patientId : string) {
   supply.participant as participant where (typeCode = 'PRD' or typeCode = 'DEV') then {
-    participant.participantRole : ProductInstance as role -> bundle.entry as resourceEntry, resourceEntry.resource = create('Device') as device, uuid() as id, device.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), device.patient as patient, patient.reference = append('urn:uuid:', patientId) then ProductInstanceToDevice(role, supply, device);
+    participant.participantRole : ProductInstance as role -> bundle.entry as resourceEntry, resourceEntry.resource = create('Device') as device, uuid() as id, device.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), device.patient as patient, patient.reference = append('urn:uuid:', patientId) then {
+      role then ProductInstanceToDevice(role, supply, device);
+      supply.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

@@ -2,7 +2,7 @@
 /// name = 'CdaVitalsToFhir'
 /// title = 'C-CDA vital signs to US Core vital signs'
 /// status = 'active'
-/// description = 'Vital Signs Organizers to a US Core 6.1.0 vital signs panel (85353-1) whose members are the Vital Sign Observations, after "Vital Signs CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Vital Signs Organizers to a US Core 6.1.0 vital signs panel (85353-1) whose members are the Vital Sign Observations, the authors of both US Core Provenance, after "Vital Signs CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-vitals-to-fhir" = "CdaVitalsToFhir"
 
@@ -18,7 +18,10 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-results-to-fhir"
 
 group VitalSignsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.organizer : VitalSignsOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as panel, uuid() as id, panel.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), panel.subject as subject, subject.reference = append('urn:uuid:', patientId) then VitalSignsPanel(organizer, panel, bundle, patientId);
+    entry.organizer : VitalSignsOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as panel, uuid() as id, panel.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), panel.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      organizer then VitalSignsPanel(organizer, panel, bundle, patientId);
+      organizer.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 
@@ -42,7 +45,11 @@ group VitalSignsPanel(source organizer : VitalSignsOrganizer, target panel : Obs
     time where (value.empty() and low.value.exists() and high.value.exists() and high.value != low.value) -> panel.effective = create('Period') as period then IVLTSToPeriod(time, period);
   };
   organizer.component as component then {
-    component.observation : VitalSignObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as vital, uuid() as id, vital.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), panel.hasMember as ref, ref.reference = append('urn:uuid:', id), vital.subject as subject, subject.reference = append('urn:uuid:', patientId) then VitalSign(observation, vital, bundle);
+    component.observation : VitalSignObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as vital, uuid() as id, vital.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), panel.hasMember as ref, ref.reference = append('urn:uuid:', id), vital.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      observation then VitalSign(observation, vital, bundle);
+      // CF-vitals: `/author` → .performer & Provenance.
+      observation.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

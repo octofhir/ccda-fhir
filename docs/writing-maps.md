@@ -16,7 +16,8 @@ logical model, and C-CDA templates as profiles.
    they point to, so a map reads `originalText.xmlText` and gets words, not `#id`. A Note
    Activity's text gets the referenced narrative as XHTML.
 3. **Map.** `maps/cda2fhir/document.map` (group `ClinicalDocument`) runs, importing the others.
-4. **Finish** (`src/prepare.rs`). Identical Practitioners, Organizations and the like are merged;
+4. **Finish** (`src/prepare.rs`). Entries a map marked as left out are taken out and reported
+   (see §5, "What cannot be carried over"); identical Practitioners, Organizations and the like are merged;
    Encounters with the same identifier are merged; a note's encounter named by its id becomes a
    reference to the Bundle entry; section narrative becomes XHTML.
 
@@ -129,6 +130,12 @@ write two; the writer reports it and the C-CDA check fails. Make their condition
 **Data absent, not missing.** When US Core requires an element the document does not give,
 write a data-absent-reason extension on it (`issued`, `class`, `type`, `Location.name`), as the
 C-CDA on FHIR examples do, and count it in the report rather than inventing a value.
+
+**What cannot be carried over** at all, because the profile would reject the resource, is
+reported, not written: group `LeftOut` of `cda2fhir/participants.map` writes a marker entry with
+the message and the resource it is about, and the Finish step takes it out and adds the message
+to the report. An entry author with no organization is the case today: US Core Provenance needs
+`onBehalfOf` for a Practitioner (provenance-1), so that author gets no Provenance.
 
 **Translations that have no target** are left out with a warning (the engine runs with
 `with_lenient_translations(true)`): a code nobody can map should not fail a whole document.

@@ -2,7 +2,7 @@
 /// name = 'CdaPlansToFhir'
 /// title = 'C-CDA goals and plan of treatment to US Core'
 /// status = 'active'
-/// description = 'Goal Observation to US Core 6.1.0 Goal; planned observations, procedures, encounters and acts of the Plan of Treatment to US Core ServiceRequest; planned medications to MedicationRequest. C-CDA on FHIR 2.0.0 has no table for these: the maps follow the templates (C-CDA 5.0.0, and the planned observation and act of earlier releases) and the US Core profiles.'
+/// description = 'Goal Observation to US Core 6.1.0 Goal; planned observations, procedures, encounters and acts of the Plan of Treatment to US Core ServiceRequest; planned medications to MedicationRequest; the authors of each US Core Provenance. C-CDA on FHIR 2.0.0 has no table for these: the maps follow the templates (C-CDA 5.0.0, and the planned observation and act of earlier releases) and the US Core profiles.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-plans-to-fhir" = "CdaPlansToFhir"
 
@@ -32,7 +32,10 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-medications-to-fhir"
 // Goals, in the Goals section or the Plan of Treatment.
 group GoalsInSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.observation : GoalObservation as goal -> bundle.entry as resourceEntry, resourceEntry.resource = create('Goal') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then GoalObservationToGoal(goal, resource, bundle);
+    entry.observation : GoalObservation as goal -> bundle.entry as resourceEntry, resourceEntry.resource = create('Goal') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      goal then GoalObservationToGoal(goal, resource, bundle);
+      goal.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 
@@ -97,14 +100,17 @@ group PlanOfTreatmentSection(source section : Section, target compositionSection
     entry.encounter : PlannedEncounter as planned then PlannedToRequest(planned, compositionSection, bundle, patientId);
     // Planned medications: MedicationRequests of the plan.
     entry.substanceAdministration : PlannedMedicationActivity as activity -> bundle.entry as resourceEntry, resourceEntry.resource = create('MedicationRequest') as request, uuid() as id, request.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), request.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
-      activity then MedicationRequest(activity, request, bundle);
+      activity then MedicationRequest(activity, request, bundle, id);
       activity -> request.intent = evaluate(activity, iif(moodCode = 'RQO', 'order', iif(moodCode = 'PRP', 'proposal', 'plan')));
     };
   };
 }
 
 group PlannedToRequest(source planned, target compositionSection, target bundle : Bundle, source patientId : string) {
-  planned -> bundle.entry as resourceEntry, resourceEntry.resource = create('ServiceRequest') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then PlannedServiceRequest(planned, resource, bundle);
+  planned -> bundle.entry as resourceEntry, resourceEntry.resource = create('ServiceRequest') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+    planned then PlannedServiceRequest(planned, resource, bundle);
+    planned.author as author then AuthorProvenance(author, id, bundle);
+  };
 }
 
 // Something planned → US Core ServiceRequest. The intent follows the mood (an intent is a plan,

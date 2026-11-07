@@ -2,7 +2,7 @@
 /// name = 'FhirMedicationsToCda'
 /// title = 'US Core MedicationRequest to C-CDA medications'
 /// status = 'active'
-/// description = 'US Core 6.1.0 MedicationRequest to Medication Activity, after "Medications FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+/// description = 'US Core 6.1.0 MedicationRequest to Medication Activity (its authors the requester and the US Core Provenance authors), after "Medications FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-medications-to-cda" = "FhirMedicationsToCda"
 
@@ -66,6 +66,7 @@ group MedicationRequestToActivity(source request : MedicationRequest, source bun
     };
   };
   request.requester as ref -> evaluate(request, iif(authoredOn.hasValue(), authoredOn, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, activity);
+  request where (id.exists()) -> evaluate(request, %bundle.entry.where(resource.is(MedicationRequest) and resource.id = %request.id).fullUrl.first()) as ownUrl, evaluate(request, iif(requester.reference.exists(), '|' + requester.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, activity);
   request.reasonCode as reason -> activity.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as indication then {
     reason -> indication.classCode = 'OBS', indication.moodCode = 'EVN';
     reason -> indication.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.19', template.extension = '2023-05-01';

@@ -2,7 +2,7 @@
 /// name = 'CdaFamilyToFhir'
 /// title = 'C-CDA family history to FamilyMemberHistory'
 /// status = 'active'
-/// description = 'Family History Organizer to FamilyMemberHistory (FHIR R4; US Core 6.1.0 has no profile for it): the relative, their sex, birth and death, and each Family History Observation as a condition with its age at onset and whether it caused the death. C-CDA on FHIR 2.0.0 has no table for family history.'
+/// description = 'Family History Organizer to FamilyMemberHistory (FHIR R4; US Core 6.1.0 has no profile for it): the relative, their sex, birth and death, and each Family History Observation as a condition with its age at onset and whether it caused the death; the authors of the organizer as US Core Provenance. C-CDA on FHIR 2.0.0 has no table for family history.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-family-to-fhir" = "CdaFamilyToFhir"
 
@@ -18,10 +18,14 @@ uses "http://hl7.org/fhir/StructureDefinition/FamilyMemberHistory" alias FamilyM
 uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
 
 group FamilyHistorySection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.organizer : FamilyHistoryOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('FamilyMemberHistory') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.patient as patient, patient.reference = append('urn:uuid:', patientId) then FamilyMember(organizer, resource);
+    entry.organizer : FamilyHistoryOrganizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('FamilyMemberHistory') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.patient as patient, patient.reference = append('urn:uuid:', patientId) then {
+      organizer then FamilyMember(organizer, resource);
+      organizer.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

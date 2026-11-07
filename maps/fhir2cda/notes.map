@@ -2,7 +2,7 @@
 /// name = 'FhirNotesToCda'
 /// title = 'US Core DocumentReference to C-CDA notes'
 /// status = 'active'
-/// description = 'US Core 6.1.0 DocumentReference to Note Activity (C-CDA 5.0.0): the inverse of "Notes CDA → FHIR" of C-CDA on FHIR 2.0.0, which publishes no FHIR → CDA table for notes. The content goes inline (base64); the section narrative gets the text it refers to after the maps run.'
+/// description = 'US Core 6.1.0 DocumentReference to Note Activity (C-CDA 5.0.0), its authors the DocumentReference authors and the other US Core Provenance authors: the inverse of "Notes CDA → FHIR" of C-CDA on FHIR 2.0.0, which publishes no FHIR → CDA table for notes. The content goes inline (base64); the section narrative gets the text it refers to after the maps run.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-notes-to-cda" = "FhirNotesToCda"
 
@@ -44,6 +44,7 @@ group DocumentReferenceToNote(source resource : DocumentReference, source bundle
   };
   resource.author as ref -> evaluate(resource, iif(date.hasValue(), date, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, act);
   resource where (author.empty()) -> act.author as author, author.time as time, time.nullFlavor = 'UNK', author.assignedAuthor as assigned, assigned.id as id, id.nullFlavor = 'NI';
+  resource where (id.exists()) -> evaluate(resource, %bundle.entry.where($this.resource.is(DocumentReference) and $this.resource.id = %resource.id).fullUrl.first()) as ownUrl, evaluate(resource, iif(author.reference.exists(), '|' + author.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, act);
   // The encounter, by its id.
   resource.context as context then {
     context.encounter first as ref then {

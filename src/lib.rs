@@ -246,6 +246,9 @@ impl Converter {
                 .push(Loss::new(Stage::Map, "", warning.clone()));
         }
         let mut bundle = transformed.target;
+        report
+            .losses
+            .extend(prepare::take_conversion_losses(&mut bundle));
         // Shared participants first, so the merged encounters' participants compare equal.
         prepare::deduplicate(&mut bundle);
         prepare::merge_by_identifier(&mut bundle);

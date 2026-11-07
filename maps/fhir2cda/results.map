@@ -2,7 +2,7 @@
 /// name = 'FhirResultsToCda'
 /// title = 'US Core DiagnosticReport and Observation to C-CDA results and vital signs'
 /// status = 'active'
-/// description = 'US Core 6.1.0 DiagnosticReport (Lab) with its result Observations to a Result Organizer, and vital signs panels to a Vital Signs Organizer. C-CDA on FHIR 2.0.0 has no FHIR → CDA table for results; this is the reverse of its CDA → FHIR table. Vital signs follow "Vital Signs FHIR → CDA".'
+/// description = 'US Core 6.1.0 DiagnosticReport (Lab) with its result Observations to a Result Organizer, and vital signs panels to a Vital Signs Organizer, with their US Core Provenance authors. C-CDA on FHIR 2.0.0 has no FHIR → CDA table for results; this is the reverse of its CDA → FHIR table. Vital signs follow "Vital Signs FHIR → CDA".'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-results-to-cda" = "FhirResultsToCda"
 
@@ -42,6 +42,7 @@ group ReportToOrganizer(source report : DiagnosticReport, source bundle : Bundle
       entry.resource : Specimen as specimen -> organizer.specimen as cdaSpecimen then SpecimenToCda(specimen, cdaSpecimen);
     };
   };
+  report where (id.exists()) -> evaluate(report, %bundle.entry.where(resource.is(DiagnosticReport) and resource.id = %report.id).fullUrl.first()) as ownUrl, evaluate(report, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, organizer);
   report.result as ref then {
     bundle.entry as entry where (fullUrl = %ref.reference) then {
       entry.resource : Observation as observation -> organizer.component as component, component.observation as result then {
@@ -93,6 +94,8 @@ group PanelToOrganizer(source panel : Observation, source bundle : Bundle, targe
       entry.resource : Observation as observation -> organizer.component as component, component.observation as vital then VitalToCda(observation, bundle, vital);
     };
   };
+  // A panel's authors; a vital sign on its own has them on the observation.
+  panel where (id.exists() and hasMember.exists()) -> evaluate(panel, %bundle.entry.where(resource.is(Observation) and resource.id = %panel.id).fullUrl.first()) as ownUrl, evaluate(panel, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, organizer);
   // A vital sign on its own (no members): the organizer holds it.
   panel where (hasMember.empty() and value.exists()) -> organizer.component as component, component.observation as vital then VitalToCda(panel, bundle, vital);
 }
@@ -152,5 +155,6 @@ group ObservationBodyToCda(source observation : Observation, source bundle : Bun
     range -> observationRange.interpretationCode as code, code.code = 'N', code.codeSystem = '2.16.840.1.113883.5.83';
   };
   observation.performer as ref -> evaluate(observation, 'UNK') as time then ReferenceToAuthor(ref, bundle, time, result);
+  observation where (id.exists()) -> evaluate(observation, %bundle.entry.where(resource.is(Observation) and resource.id = %observation.id).fullUrl.first()) as ownUrl, evaluate(observation, iif(performer.reference.exists(), '|' + performer.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, result);
   observation.note as note then AnnotationToComment(note, result);
 }

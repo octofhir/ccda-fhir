@@ -2,7 +2,7 @@
 /// name = 'FhirEncountersToCda'
 /// title = 'US Core Encounter to C-CDA encounters'
 /// status = 'active'
-/// description = 'US Core 6.1.0 Encounter to Encounter Activity (with its location, indications and encounter diagnoses) and to the header encompassingEncounter: the inverse of "Encounters CDA → FHIR" of C-CDA on FHIR 2.0.0, which publishes no FHIR → CDA table for encounters.'
+/// description = 'US Core 6.1.0 Encounter to Encounter Activity (with its location, indications, encounter diagnoses and the US Core Provenance authors) and to the header encompassingEncounter: the inverse of "Encounters CDA → FHIR" of C-CDA on FHIR 2.0.0, which publishes no FHIR → CDA table for encounters.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-encounters-to-cda" = "FhirEncountersToCda"
 
@@ -38,6 +38,7 @@ group EncounterToActivity(source resource : FhirEncounter, source bundle : Bundl
   resource.participant as participant then {
     participant.individual as ref then ReferenceToPerformer(ref, bundle, encounter);
   };
+  resource where (id.exists()) -> evaluate(resource, %bundle.entry.where($this.resource.is(Encounter) and $this.resource.id = %resource.id).fullUrl.first()) as ownUrl, evaluate(resource, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, encounter);
   resource.location as location then {
     location.location as ref then {
       bundle.entry as entry where (fullUrl = %ref.reference) then {

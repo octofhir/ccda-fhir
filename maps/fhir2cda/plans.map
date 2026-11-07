@@ -2,7 +2,7 @@
 /// name = 'FhirPlansToCda'
 /// title = 'US Core Goal and ServiceRequest to C-CDA goals and plan of treatment'
 /// status = 'active'
-/// description = 'US Core 6.1.0 Goal to Goal Observation and ServiceRequest to Planned Procedure (C-CDA 5.0.0): the inverse of cda-plans-to-fhir. C-CDA on FHIR 2.0.0 has no table for these.'
+/// description = 'US Core 6.1.0 Goal to Goal Observation and ServiceRequest to Planned Procedure (C-CDA 5.0.0), with their US Core Provenance authors: the inverse of cda-plans-to-fhir. C-CDA on FHIR 2.0.0 has no table for these.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-plans-to-cda" = "FhirPlansToCda"
 
@@ -47,6 +47,7 @@ group GoalToObservation(source goal : Goal, source bundle : Bundle, target obser
     };
   };
   goal.expressedBy as ref -> evaluate(goal, 'UNK') as time then ReferenceToAuthor(ref, bundle, time, observation);
+  goal where (id.exists()) -> evaluate(goal, %bundle.entry.where(resource.is(Goal) and resource.id = %goal.id).fullUrl.first()) as ownUrl, evaluate(goal, iif(expressedBy.reference.exists(), '|' + expressedBy.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, observation);
   goal.note as note then AnnotationToComment(note, observation);
 }
 
@@ -64,6 +65,7 @@ group ServiceRequestToPlanned(source request : ServiceRequest, source bundle : B
   request.occurrence : dateTime as occurrence -> procedure.effectiveTime as time then DateTimeToTS(occurrence, time);
   request.occurrence : Period as occurrence -> procedure.effectiveTime as time then PeriodToIVLTS(occurrence, time);
   request.requester as ref -> evaluate(request, iif(authoredOn.hasValue(), authoredOn, 'UNK')) as time then ReferenceToAuthor(ref, bundle, time, procedure);
+  request where (id.exists()) -> evaluate(request, %bundle.entry.where(resource.is(ServiceRequest) and resource.id = %request.id).fullUrl.first()) as ownUrl, evaluate(request, iif(requester.reference.exists(), '|' + requester.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, procedure);
   request.performer as ref then ReferenceToPerformer(ref, bundle, procedure);
   request.reasonCode as reason -> procedure.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as indication then {
     reason -> indication.classCode = 'OBS', indication.moodCode = 'EVN';

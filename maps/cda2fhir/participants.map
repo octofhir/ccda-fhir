@@ -2,7 +2,7 @@
 /// name = 'CdaParticipantsToFhir'
 /// title = 'CDA participants to FHIR R4'
 /// status = 'active'
-/// description = 'Authors, assigned entities and organizations to Practitioner, Device and Organization, after the participations mapping of C-CDA on FHIR 2.0.0.'
+/// description = 'Authors, assigned entities and organizations to Practitioner, Device and Organization, after the participations mapping of C-CDA on FHIR 2.0.0; entry authors to US Core 6.1.0 Provenance, after "CDA ↔ FHIR Provenance" of its mapping guidance.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir" = "CdaParticipantsToFhir"
 
@@ -25,6 +25,7 @@ uses "http://hl7.org/fhir/StructureDefinition/PractitionerRole" alias Practition
 uses "http://hl7.org/fhir/StructureDefinition/Organization" alias Organization as target
 uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as target
 uses "http://hl7.org/fhir/StructureDefinition/Location" alias Location as target
+uses "http://hl7.org/fhir/StructureDefinition/Provenance" alias Provenance as target
 
 imports "http://octofhir.com/ccda-fhir/StructureMap/cda-datatypes-to-fhir"
 
@@ -104,6 +105,67 @@ group AssignedAuthorToRole(source assigned : AssignedAuthor, target role : Pract
   };
   assigned.code as code -> role.code as cc then CDToCodeableConcept(code, cc);
   assigned.representedOrganization as org -> bundle.entry as entry, entry.resource = create('Organization') as organization, uuid() as id, organization.id = id, entry.fullUrl = append('urn:uuid:', id), role.organization as ref, ref.reference = append('urn:uuid:', id) then OrganizationToOrganization(org, organization);
+}
+
+// An entry's author → US Core Provenance of the resource `targetId` names (mapping guidance,
+// "CDA ↔ FHIR Provenance"; the `/author` rows of the CF tables): one per author, an author agent
+// at the author's time. Who the author is follows the participations mapping (AuthorReference):
+// a person in a role (a role code or an organization) is the PractitionerRole, on behalf of the
+// organization; an organization alone is the Organization; a device is the Device, on behalf of
+// its organization. US Core requires onBehalfOf when the agent is a Practitioner or a Device
+// (provenance-1), and nothing in the entry says on whose behalf an author without an
+// organization acted: such an author gets no Provenance, and the left-out marker reports it.
+group AuthorProvenance(source author : Author, source targetId : string, target bundle : Bundle) {
+  author.assignedAuthor as assigned where (assignedAuthoringDevice.empty() and ((assignedPerson.exists() and (code.exists() or representedOrganization.exists())) or (assignedPerson.empty() and representedOrganization.empty() and code.exists() and id.where(root.exists() or extension.exists()).exists()))) -> bundle.entry as entry, entry.resource = create('Provenance') as provenance, uuid() as provenanceId, provenance.id = provenanceId, entry.fullUrl = append('urn:uuid:', provenanceId) then {
+    author then ProvenanceOf(author, targetId, provenance);
+    author -> provenance.agent as agent then {
+      author then AuthorAgentType(author, agent);
+      author -> agent.who as ref then AuthorReference(author, ref, bundle);
+      assigned.representedOrganization as org -> bundle.entry as orgEntry, orgEntry.resource = create('Organization') as organization, uuid() as orgId, organization.id = orgId, orgEntry.fullUrl = append('urn:uuid:', orgId), agent.onBehalfOf as onBehalfOf, onBehalfOf.reference = append('urn:uuid:', orgId) then OrganizationToOrganization(org, organization);
+    };
+  };
+  author.assignedAuthor as assigned where (assignedPerson.empty() and assignedAuthoringDevice.empty() and representedOrganization.exists()) -> bundle.entry as entry, entry.resource = create('Provenance') as provenance, uuid() as provenanceId, provenance.id = provenanceId, entry.fullUrl = append('urn:uuid:', provenanceId) then {
+    author then ProvenanceOf(author, targetId, provenance);
+    author -> provenance.agent as agent then {
+      author then AuthorAgentType(author, agent);
+      assigned.representedOrganization as org -> bundle.entry as orgEntry, orgEntry.resource = create('Organization') as organization, uuid() as orgId, organization.id = orgId, orgEntry.fullUrl = append('urn:uuid:', orgId), agent.who as who, who.reference = append('urn:uuid:', orgId) then OrganizationToOrganization(org, organization);
+    };
+  };
+  // The Device and its Organization as the document's author has them (DocumentAuthor), so the
+  // two merge.
+  author.assignedAuthor as assigned where (assignedAuthoringDevice.exists() and representedOrganization.exists()) -> bundle.entry as entry, entry.resource = create('Provenance') as provenance, uuid() as provenanceId, provenance.id = provenanceId, entry.fullUrl = append('urn:uuid:', provenanceId) then {
+    author then ProvenanceOf(author, targetId, provenance);
+    author -> provenance.agent as agent then {
+      author then AuthorAgentType(author, agent);
+      assigned -> bundle.entry as deviceEntry, deviceEntry.resource = create('Device') as device, uuid() as deviceId, device.id = deviceId, deviceEntry.fullUrl = append('urn:uuid:', deviceId), agent.who as who, who.reference = append('urn:uuid:', deviceId) then {
+        assigned.assignedAuthoringDevice as authoring then AuthoringDeviceToDevice(authoring, device);
+        assigned.representedOrganization as org -> bundle.entry as orgEntry, orgEntry.resource = create('Organization') as organization, uuid() as orgId, organization.id = orgId, orgEntry.fullUrl = append('urn:uuid:', orgId), device.owner as owner, owner.reference = append('urn:uuid:', orgId), agent.onBehalfOf as onBehalfOf, onBehalfOf.reference = append('urn:uuid:', orgId) then OrganizationToOrganization(org, organization);
+      };
+    };
+  };
+  author.assignedAuthor as assigned where (iif((assignedAuthoringDevice.empty() and ((assignedPerson.exists() and (code.exists() or representedOrganization.exists())) or (assignedPerson.empty() and representedOrganization.empty() and code.exists() and id.where(root.exists() or extension.exists()).exists()))) or (assignedPerson.empty() and assignedAuthoringDevice.empty() and representedOrganization.exists()) or (assignedAuthoringDevice.exists() and representedOrganization.exists()), false, true)) -> evaluate(assigned, 'author' + iif(id.where(root.exists()).exists(), ' ' + id.where(root.exists()).first().select(root + iif(extension.exists(), '^' + extension, '')), '') + iif(assignedAuthoringDevice.exists(), ': an authoring device with no representedOrganization; US Core Provenance requires onBehalfOf for a Device (provenance-1)', iif(assignedPerson.exists() or id.where(root.exists() or extension.exists()).exists(), ': a person with no representedOrganization; US Core Provenance requires onBehalfOf for a Practitioner (provenance-1)', ': names no person, device or organization')) + ', so it has no Provenance') as message then LeftOut(targetId, message, bundle);
+}
+
+// The resource a Provenance is about, its profile, and when: the author's time as an instant
+// when it is one (a time with seconds and a zone). A less precise time is not padded: recorded
+// is data-absent, as US Core requires a value.
+group ProvenanceOf(source author : Author, source targetId : string, target provenance : Provenance) {
+  author -> provenance.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-provenance';
+  author -> provenance.target as target, target.reference = append('urn:uuid:', targetId);
+  author.time as time where (value.toString().matches('T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?([+-][0-9]{2}:[0-9]{2}|Z)$')) -> provenance.recorded = create('instant') as recorded then TSToDateTime(time, recorded);
+  author where (time.value.where(toString().matches('T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?([+-][0-9]{2}:[0-9]{2}|Z)$')).empty()) -> provenance.recorded as recorded, recorded.extension as e, e.url = 'http://hl7.org/fhir/StructureDefinition/data-absent-reason', e.value = create('code') as reason, reason.value = 'unknown';
+}
+
+// The US Core ProvenanceAuthor slice.
+group AuthorAgentType(source author : Author, target agent) {
+  author -> agent.type as type, type.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/provenance-participant-type', coding.code = 'author', coding.display = 'Author';
+}
+
+// What a map cannot carry over, said where FML has no other way to say it: a Bundle entry with
+// the conversion-loss extension (the message) and the resource it is about as its target. The
+// converter takes these entries out after the maps run and reports each one.
+group LeftOut(source targetId : string, source message : string, target bundle : Bundle) {
+  targetId -> bundle.entry as entry, entry.resource = create('Provenance') as marker, marker.target as target, target.reference = append('urn:uuid:', targetId), marker.extension as loss, loss.url = 'http://octofhir.com/ccda-fhir/StructureDefinition/conversion-loss', loss.value = create('string') as text, text.value = message;
 }
 
 // A reference to the Practitioner a performer is.

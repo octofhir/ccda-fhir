@@ -2,7 +2,7 @@
 /// name = 'CdaEncountersToFhir'
 /// title = 'C-CDA encounters to US Core Encounter'
 /// status = 'active'
-/// description = 'Encounter Activity and the header encompassingEncounter to US Core 6.1.0 Encounter, with their locations and encounter diagnoses, after "Encounters CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Encounter Activity and the header encompassingEncounter to US Core 6.1.0 Encounter, with their locations and encounter diagnoses, and the authors of encounter activities and diagnoses as US Core Provenance, after "Encounters CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-encounters-to-fhir" = "CdaEncountersToFhir"
 
@@ -27,7 +27,10 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-problems-to-fhir"
 
 group EncountersSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.encounter : EncounterActivity as encounter -> bundle.entry as resourceEntry, resourceEntry.resource = create('Encounter') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then EncounterActivity(encounter, resource, bundle, patientId);
+    entry.encounter : EncounterActivity as encounter -> bundle.entry as resourceEntry, resourceEntry.resource = create('Encounter') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      encounter then EncounterActivity(encounter, resource, bundle, patientId);
+      encounter.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 
@@ -73,6 +76,7 @@ group DiagnosisAct(source act, target resource : Encounter, target bundle : Bund
     inner.observation : ProblemObservation as observation -> bundle.entry as entry, entry.resource = create('Condition') as condition, uuid() as id, condition.id = id, entry.fullUrl = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId), resource.diagnosis as encounterDiagnosis, encounterDiagnosis.condition as ref, ref.reference = append('urn:uuid:', id) then {
       role where ($this != '') -> encounterDiagnosis.use as use, use.coding as coding, coding.system = 'http://terminology.hl7.org/CodeSystem/diagnosis-role', coding.code = role;
       observation then EncounterDiagnosisCondition(observation, condition, bundle, patientId);
+      observation.author as author then AuthorProvenance(author, id, bundle);
     };
   };
 }
@@ -163,7 +167,10 @@ group DiagnosisSection(source section : Section, target compositionSection, targ
   section.entry as entry then {
     entry.act as act where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.34') or hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.33')) then {
       act.entryRelationship as inner then {
-        inner.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then EncounterDiagnosisCondition(observation, condition, bundle, patientId);
+        inner.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+          observation then EncounterDiagnosisCondition(observation, condition, bundle, patientId);
+          observation.author as author then AuthorProvenance(author, id, bundle);
+        };
       };
     };
   };

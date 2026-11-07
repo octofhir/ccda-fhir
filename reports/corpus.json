@@ -12,15 +12,15 @@
   },
   "roundTrip": {
     "facts": 63717,
-    "kept": 46564
+    "kept": 46951
   },
   "fhirRoundTrip": {
-    "facts": 52461,
-    "kept": 51780
+    "facts": 53107,
+    "kept": 52383
   },
-  "losses": 687,
+  "losses": 1053,
   "lossesByStage": {
-    "map": 480,
+    "map": 846,
     "narrative": 21,
     "read": 186
   },
@@ -39,11 +39,12 @@
     "Medication": 435,
     "MedicationRequest": 537,
     "Observation": 2349,
-    "Organization": 1239,
+    "Organization": 1241,
     "Patient": 493,
-    "Practitioner": 1530,
-    "PractitionerRole": 705,
+    "Practitioner": 1599,
+    "PractitionerRole": 774,
     "Procedure": 261,
+    "Provenance": 476,
     "ServiceRequest": 373
   },
   "unknownTemplates": {
@@ -592,7 +593,7 @@
       "fragment": false,
       "error": null,
       "facts": 668,
-      "kept": 430,
+      "kept": 432,
       "missing": [
         "city Ann Arbor",
         "city Portland",
@@ -921,7 +922,7 @@
         "time 2014-10-01T10:30:26-05:00",
         "time 2014-10-01T14:32:21-05:00"
       ],
-      "losses": 1,
+      "losses": 11,
       "coverage": {
         "sections": [
           {
@@ -1008,17 +1009,14 @@
       "fragment": false,
       "error": null,
       "facts": 141,
-      "kept": 88,
+      "kept": 93,
       "missing": [
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11367-0",
         "code 2.16.840.1.113883.6.96|225773000",
         "code 2.16.840.1.113883.6.96|281694009",
         "code 2.16.840.1.113883.6.96|394849002",
         "code 2.16.840.1.113883.6.96|409623005",
         "code 2.16.840.1.113883.6.96|449868002",
-        "family Florence",
-        "given Nurse",
         "id 031B375E-E1AA-4602-9855-F65EC3BBEE50|",
         "id 2.16.840.1.113883.4.1|444222222",
         "id 20CF14FB-B65C-4C8C-A54D-B0CCA834C18C|",
@@ -1027,8 +1025,6 @@
         "id 8DFACD73-1682-4CC4-9351-E54CCEA83612|",
         "id A5B64706-9438-4D13-8DCF-651DA3EF83BF|",
         "id CBCBF20A-D011-449F-87D1-A23CC3E5F7CF|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "suffix RN",
         "time 2009-02-14",
         "time 2013-06-13",
         "time 2013-06-16",
@@ -1036,7 +1032,7 @@
         "time 2013-08-01",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -1169,7 +1165,7 @@
         "time 2013-07-31",
         "time 2013-08-01T05:00-08:00"
       ],
-      "losses": 8,
+      "losses": 33,
       "coverage": {
         "sections": [
           {
@@ -1733,7 +1729,7 @@
         "time 2012-05-12",
         "time 2012-09-16T19:05-04:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -2123,7 +2119,7 @@
         "time 2012-05-12",
         "time 2012-09-16T19:11-04:00"
       ],
-      "losses": 0,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -2307,13 +2303,12 @@
       "fragment": false,
       "error": null,
       "facts": 360,
-      "kept": 247,
+      "kept": 251,
       "missing": [
         "city Ann Arbor",
         "city Portland",
         "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|207QA0505X",
-        "code 2.16.840.1.113883.6.101|246Q00000X",
         "code 2.16.840.1.113883.6.96|225773000",
         "code 2.16.840.1.113883.6.96|255604002",
         "code 2.16.840.1.113883.6.96|371924009",
@@ -2330,7 +2325,6 @@
         "given Patty",
         "given Puffer",
         "id 2.16.840.1.113883.19.5.9999.1393|",
-        "id 2.16.840.1.113883.4.6|333444444",
         "id 2.16.840.1.113883.4.6|555555555",
         "id 2A620155-9D11-439E-92B3-5D9815FF4EE5|",
         "id 2A620155-9D11-439E-92B3-5D9815FF4EE8|",
@@ -2378,7 +2372,7 @@
         "time 2013-07-30",
         "time 2013-07-31"
       ],
-      "losses": 2,
+      "losses": 21,
       "coverage": {
         "sections": [
           {
@@ -2516,7 +2510,7 @@
       "fragment": false,
       "error": null,
       "facts": 677,
-      "kept": 403,
+      "kept": 405,
       "missing": [
         "city Ann Arbor",
         "city Blue Bell",
@@ -2646,7 +2640,7 @@
         "time 2013-09-21T05:00-08:00",
         "time 2013-11-15"
       ],
-      "losses": 11,
+      "losses": 15,
       "coverage": {
         "sections": [
           {
@@ -2863,7 +2857,7 @@
       "fragment": false,
       "error": null,
       "facts": 979,
-      "kept": 604,
+      "kept": 660,
       "missing": [
         "city Blue Bell",
         "city Portland",
@@ -2911,7 +2905,6 @@
         "family Florence",
         "family Nancy",
         "family Penny",
-        "family Primary",
         "family Seven",
         "given Assigned",
         "given Henry",
@@ -2977,7 +2970,6 @@
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "postalCode 02368",
         "postalCode 97867",
-        "postalCode 99123",
         "prefix DR",
         "prefix Dr.",
         "quantity 1 1",
@@ -2988,10 +2980,8 @@
         "streetAddressLine 1001 Village Avenue",
         "streetAddressLine 1003 Health Care Drive",
         "streetAddressLine 1004 Health Care Drive",
-        "streetAddressLine 1004 Healthcare Drive",
         "streetAddressLine 1006 Health Drive",
         "streetAddressLine 17 Daws Rd.",
-        "suffix M.D.",
         "suffix RN",
         "time 1950",
         "time 1967",
@@ -3031,7 +3021,7 @@
         "time 2013-09-21T05:00-08:00",
         "time 2013-11-15"
       ],
-      "losses": 13,
+      "losses": 20,
       "coverage": {
         "sections": [
           {
@@ -5762,7 +5752,7 @@
       "facts": 7,
       "kept": 7,
       "missing": [],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -6241,7 +6231,7 @@
         "id 36E3E930-7B14-11DB-9FE1-0800200C9A66|",
         "time 2013-06-07T16:05:06"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -7003,12 +6993,8 @@
       "fragment": true,
       "error": null,
       "facts": 18,
-      "kept": 13,
+      "kept": 17,
       "missing": [
-        "code 2.16.840.1.113883.6.101|207Q00000X",
-        "family Seven",
-        "given Henry",
-        "id 2.16.840.1.113883.4.6|99999999",
         "time 2010-08-15"
       ],
       "losses": 0,
@@ -7038,18 +7024,13 @@
       "fragment": true,
       "error": null,
       "facts": 18,
-      "kept": 4,
+      "kept": 9,
       "missing": [
         "city Silver Spring",
-        "code 2.16.840.1.113883.6.101|207Q00000X",
         "country US",
         "family One",
-        "family Seven",
-        "given Henry",
         "given Patient",
-        "id 2.16.840.1.113883.19.5.9999.1394|",
         "id 2.16.840.1.113883.3.3208.101.2|20130607100800-Patient2",
-        "id 2.16.840.1.113883.4.6|9911223334",
         "postalCode 20901",
         "state MD",
         "streetAddressLine 1111 StreetName St.",
@@ -7080,12 +7061,8 @@
       "fragment": true,
       "error": null,
       "facts": 19,
-      "kept": 14,
+      "kept": 18,
       "missing": [
-        "code 2.16.840.1.113883.6.101|207Q00000X",
-        "family Seven",
-        "given Henry",
-        "id 2.16.840.1.113883.4.6|99999999",
         "time 2010-08-15"
       ],
       "losses": 0,
@@ -7895,7 +7872,7 @@
       "missing": [
         "time 2016-09-13T14:46-05:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -7981,7 +7958,7 @@
       "facts": 8,
       "kept": 8,
       "missing": [],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -9133,7 +9110,7 @@
       "missing": [
         "time 2018-08"
       ],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -11280,20 +11257,13 @@
       "fragment": true,
       "error": null,
       "facts": 20,
-      "kept": 4,
+      "kept": 11,
       "missing": [
         "city Silver Spring",
-        "code 2.16.840.1.113883.6.101|207Q00000X",
         "country US",
         "family One",
-        "family Seven",
-        "given Henry",
         "given Patient",
-        "id 2.16.840.1.113883.19.5.9999.1394|",
         "id 2.16.840.1.113883.3.3208.101.2|20130607100800-Patient2",
-        "id 2.16.840.1.113883.4.2|",
-        "id 2.16.840.1.113883.4.6|",
-        "id 2.16.840.1.113883.4.6|9911223334",
         "postalCode 20901",
         "state MD",
         "streetAddressLine 1111 StreetName St.",
@@ -11324,12 +11294,8 @@
       "fragment": true,
       "error": null,
       "facts": 19,
-      "kept": 14,
+      "kept": 18,
       "missing": [
-        "code 2.16.840.1.113883.6.101|207Q00000X",
-        "family Seven",
-        "given Henry",
-        "id 2.16.840.1.113883.4.6|99999999",
         "time 2010-08-15"
       ],
       "losses": 0,
@@ -11359,12 +11325,8 @@
       "fragment": true,
       "error": null,
       "facts": 18,
-      "kept": 13,
+      "kept": 17,
       "missing": [
-        "code 2.16.840.1.113883.6.101|207Q00000X",
-        "family Seven",
-        "given Henry",
-        "id 2.16.840.1.113883.4.6|99999999",
         "time 2010-08-15"
       ],
       "losses": 0,
@@ -12060,7 +12022,7 @@
       "missing": [
         "time 2016-09-13T14:46-05:00"
       ],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -12120,7 +12082,7 @@
       "facts": 5,
       "kept": 5,
       "missing": [],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -12148,7 +12110,7 @@
       "facts": 8,
       "kept": 8,
       "missing": [],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -13334,7 +13296,7 @@
       "missing": [
         "time 2018-08"
       ],
-      "losses": 0,
+      "losses": 1,
       "coverage": {
         "sections": [
           {
@@ -13825,7 +13787,7 @@
         "time 2006-05-01",
         "time 2012-08-06"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -13959,10 +13921,9 @@
       "fragment": false,
       "error": null,
       "facts": 372,
-      "kept": 300,
+      "kept": 310,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|200000000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
@@ -13971,8 +13932,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Davis",
-        "given Tracy",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -13988,8 +13947,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -14001,7 +13958,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -14015,7 +13971,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -14462,7 +14418,7 @@
         "time 2006-05-01",
         "time 2012-08-06"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -14596,10 +14552,9 @@
       "fragment": false,
       "error": null,
       "facts": 372,
-      "kept": 300,
+      "kept": 310,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|200000000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
@@ -14608,8 +14563,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Davis",
-        "given Tracy",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -14625,8 +14578,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7171-4166-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -14638,7 +14589,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -14653,7 +14603,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -15127,7 +15077,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -15291,19 +15241,16 @@
       "fragment": false,
       "error": null,
       "facts": 534,
-      "kept": 444,
+      "kept": 454,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -15325,8 +15272,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0812200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -15339,7 +15284,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -15352,7 +15296,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -15825,11 +15769,10 @@
       "fragment": false,
       "error": null,
       "facts": 537,
-      "kept": 446,
+      "kept": 456,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.1|8648-8",
@@ -15837,8 +15780,6 @@
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -15860,8 +15801,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0812200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7174-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -15874,7 +15813,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -15887,7 +15825,7 @@
         "time 2015-06-22T10:15-05:00",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -16459,7 +16397,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -16623,19 +16561,16 @@
       "fragment": false,
       "error": null,
       "facts": 535,
-      "kept": 445,
+      "kept": 455,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -16657,8 +16592,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0812200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7271-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -16671,7 +16604,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -16684,7 +16616,7 @@
         "time 2015-06-22T10:15-05:00",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -17232,7 +17164,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 2,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -17443,7 +17375,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -18509,7 +18441,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 2,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -18720,7 +18652,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -20111,7 +20043,7 @@
         "time 2006-05-01",
         "time 2012-08-06"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -20245,10 +20177,9 @@
       "fragment": false,
       "error": null,
       "facts": 372,
-      "kept": 300,
+      "kept": 310,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|200000000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
@@ -20257,8 +20188,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Davis",
-        "given Tracy",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -20274,8 +20203,6 @@
         "id AB1791B1-5C71-11DB-B0DE-0800200C9A66|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -20287,7 +20214,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -20301,7 +20227,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -20748,7 +20674,7 @@
         "time 2006-05-01",
         "time 2012-08-06"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -20882,10 +20808,9 @@
       "fragment": false,
       "error": null,
       "facts": 372,
-      "kept": 300,
+      "kept": 310,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|200000000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
@@ -20894,8 +20819,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Davis",
-        "given Tracy",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -20911,8 +20834,6 @@
         "id AB1791B0-5C71-14DB-B0DE-0800200C9A66|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7171-4166-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -20924,7 +20845,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -20939,7 +20859,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -21413,7 +21333,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -21577,19 +21497,16 @@
       "fragment": false,
       "error": null,
       "facts": 534,
-      "kept": 444,
+      "kept": 454,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -21611,8 +21528,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -21625,7 +21540,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -21638,7 +21552,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -22111,11 +22025,10 @@
       "fragment": false,
       "error": null,
       "facts": 537,
-      "kept": 446,
+      "kept": 456,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.1|8648-8",
@@ -22123,8 +22036,6 @@
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -22146,8 +22057,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7174-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -22160,7 +22069,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -22173,7 +22081,7 @@
         "time 2015-06-22T10:15-05:00",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -22745,7 +22653,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -22909,19 +22817,16 @@
       "fragment": false,
       "error": null,
       "facts": 535,
-      "kept": 445,
+      "kept": 455,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -22943,8 +22848,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7271-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -22957,7 +22860,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -22970,7 +22872,7 @@
         "time 2015-06-22T10:15-05:00",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -23465,10 +23367,9 @@
       "fragment": false,
       "error": null,
       "facts": 365,
-      "kept": 302,
+      "kept": 312,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
         "code 2.16.840.1.113883.6.96|161901003",
@@ -23476,8 +23377,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Florence",
-        "given Nurse",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -23492,8 +23391,6 @@
         "id AB1791B0-5C72-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -23505,7 +23402,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -23519,7 +23415,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -23720,10 +23616,9 @@
       "fragment": false,
       "error": null,
       "facts": 342,
-      "kept": 283,
+      "kept": 293,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
         "code 2.16.840.1.113883.6.96|161901003",
@@ -23731,8 +23626,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Florence",
-        "given Nurse",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -23745,8 +23638,6 @@
         "id AB1791B0-5C71-12DB-B0DE-0800200C9A66|",
         "id AB1791B0-5C72-11DB-B0DE-0800200C9A68|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DF8|",
@@ -23757,7 +23648,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -23771,7 +23661,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 1,
+      "losses": 3,
       "coverage": {
         "sections": [
           {
@@ -23960,19 +23850,16 @@
       "fragment": false,
       "error": null,
       "facts": 534,
-      "kept": 444,
+      "kept": 454,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -23994,8 +23881,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -24008,7 +23893,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -24021,7 +23905,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -24254,19 +24138,16 @@
       "fragment": false,
       "error": null,
       "facts": 441,
-      "kept": 360,
+      "kept": 370,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -24281,8 +24162,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A66|",
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-86C3-F98E59B45DF9|",
@@ -24294,7 +24173,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -24307,7 +24185,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -24528,17 +24406,14 @@
       "fragment": false,
       "error": null,
       "facts": 141,
-      "kept": 88,
+      "kept": 93,
       "missing": [
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11367-0",
         "code 2.16.840.1.113883.6.96|225773000",
         "code 2.16.840.1.113883.6.96|281694009",
         "code 2.16.840.1.113883.6.96|394849002",
         "code 2.16.840.1.113883.6.96|409623005",
         "code 2.16.840.1.113883.6.96|449868002",
-        "family Florence",
-        "given Nurse",
         "id 031B375E-E1AA-4602-9855-F65EC3BBEE50|",
         "id 2.16.840.1.113883.4.1|444222222",
         "id 20CF14FB-B65C-4C8C-A54D-B0CCA834C18C|",
@@ -24547,8 +24422,6 @@
         "id 8DFACD73-1682-4CC4-9351-E54CCEA83612|",
         "id A5B64706-9438-4D13-8DCF-651DA3EF83BF|",
         "id CBCBF20A-D011-449F-87D1-A23CC3E5F7CF|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "suffix RN",
         "time 2009-02-14",
         "time 2013-06-13",
         "time 2013-06-16",
@@ -24556,7 +24429,7 @@
         "time 2013-08-01",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -24619,17 +24492,14 @@
       "fragment": false,
       "error": null,
       "facts": 141,
-      "kept": 88,
+      "kept": 93,
       "missing": [
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11367-0",
         "code 2.16.840.1.113883.6.96|225773000",
         "code 2.16.840.1.113883.6.96|281694009",
         "code 2.16.840.1.113883.6.96|394849002",
         "code 2.16.840.1.113883.6.96|409623005",
         "code 2.16.840.1.113883.6.96|449868002",
-        "family Florence",
-        "given Nurse",
         "id 031B375E-E1AA-4602-9855-F65EC3BBEE50|",
         "id 2.16.840.1.113883.4.1|444222222",
         "id 20CF14FB-B65C-4C8C-A54D-B0CCA834C18C|",
@@ -24638,8 +24508,6 @@
         "id 8DFACD73-1682-4CC4-9351-E54CCEA83612|",
         "id A5B64706-9438-4D13-8DCF-651DA3EF83BF|",
         "id CBCBF20A-D011-449F-87D1-A23CC3E5F7CF|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "suffix RN",
         "time 2009-02-14",
         "time 2013-06-13",
         "time 2013-06-16",
@@ -24647,7 +24515,7 @@
         "time 2013-08-01",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -24795,7 +24663,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -25028,7 +24896,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 12,
+      "losses": 15,
       "coverage": {
         "sections": [
           {
@@ -25264,7 +25132,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -25490,7 +25358,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -25716,7 +25584,7 @@
         "time 2012-08-26",
         "time 732497932932937937327393270"
       ],
-      "losses": 6,
+      "losses": 9,
       "coverage": {
         "sections": [
           {
@@ -25942,7 +25810,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -26169,7 +26037,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -26395,7 +26263,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -26622,7 +26490,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -26849,7 +26717,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -27086,7 +26954,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -27312,7 +27180,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -27547,7 +27415,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -27767,7 +27635,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -27991,7 +27859,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -28217,7 +28085,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -28443,7 +28311,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -28669,7 +28537,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -28895,7 +28763,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -29122,7 +28990,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -29349,7 +29217,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -29575,7 +29443,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -29803,7 +29671,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -30019,7 +29887,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -30244,7 +30112,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -31880,7 +31748,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -32106,7 +31974,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -32561,7 +32429,7 @@
         "time 2013-08-20T11:20-08:00",
         "time 2013-09-02"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -32627,7 +32495,7 @@
         "time 2013-07-30",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -32788,19 +32656,16 @@
       "fragment": false,
       "error": null,
       "facts": 371,
-      "kept": 305,
+      "kept": 315,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -32817,8 +32682,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id AB1791B0-5C71-11DB-B0DE-2222222X2Z33|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-88C3-E98E58B45DF9|",
         "id EC8A6FF8-ED4B-4F7E-89C3-E98E58B45DF9|",
@@ -32828,7 +32691,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -32839,7 +32701,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -33351,7 +33213,7 @@
         "time 2006-05-01",
         "time 2012-08-06"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -33485,10 +33347,9 @@
       "fragment": false,
       "error": null,
       "facts": 372,
-      "kept": 300,
+      "kept": 310,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|200000000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
@@ -33497,8 +33358,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Davis",
-        "given Tracy",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -33514,8 +33373,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -33527,7 +33384,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -33541,7 +33397,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -33988,7 +33844,7 @@
         "time 2006-05-01",
         "time 2012-08-06"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -34122,10 +33978,9 @@
       "fragment": false,
       "error": null,
       "facts": 372,
-      "kept": 300,
+      "kept": 310,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.101|200000000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
@@ -34134,8 +33989,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Davis",
-        "given Tracy",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -34151,8 +34004,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7171-4166-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -34164,7 +34015,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -34179,7 +34029,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -34653,7 +34503,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -34817,19 +34667,16 @@
       "fragment": false,
       "error": null,
       "facts": 534,
-      "kept": 444,
+      "kept": 454,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -34851,8 +34698,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0812200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -34865,7 +34710,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -34878,7 +34722,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -35351,11 +35195,10 @@
       "fragment": false,
       "error": null,
       "facts": 537,
-      "kept": 446,
+      "kept": 456,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.1|8648-8",
@@ -35363,8 +35206,6 @@
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -35386,8 +35227,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0812200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7174-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -35400,7 +35239,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -35413,7 +35251,7 @@
         "time 2015-06-22T10:15-05:00",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -35985,7 +35823,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -36149,19 +35987,16 @@
       "fragment": false,
       "error": null,
       "facts": 535,
-      "kept": 445,
+      "kept": 455,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -36183,8 +36018,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0812200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7271-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -36197,7 +36030,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -36210,7 +36042,7 @@
         "time 2015-06-22T10:15-05:00",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -36758,7 +36590,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 2,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -36969,7 +36801,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -37155,7 +36987,7 @@
         "time 2019-12-01",
         "time 2020-06-22T11:00-05:00"
       ],
-      "losses": 3,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -37582,7 +37414,7 @@
         "time 2019-12-01",
         "time 2020-06-22T11:00-05:00"
       ],
-      "losses": 3,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -38041,7 +37873,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 2,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -38252,7 +38084,7 @@
         "time 2012-08-20",
         "time 2012-08-26"
       ],
-      "losses": 1,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -39806,10 +39638,9 @@
       "fragment": false,
       "error": null,
       "facts": 365,
-      "kept": 302,
+      "kept": 312,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
         "code 2.16.840.1.113883.6.96|161901003",
@@ -39817,8 +39648,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Florence",
-        "given Nurse",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -39833,8 +39662,6 @@
         "id AB1791B0-5C72-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -39846,7 +39673,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -39860,7 +39686,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -40061,10 +39887,9 @@
       "fragment": false,
       "error": null,
       "facts": 342,
-      "kept": 283,
+      "kept": 293,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
         "code 2.16.840.1.113883.6.96|161901003",
@@ -40072,8 +39897,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Florence",
-        "given Nurse",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -40086,8 +39909,6 @@
         "id AB1791B0-5C71-12DB-B0DE-0800200C9A66|",
         "id AB1791B0-5C72-11DB-B0DE-0800200C9A68|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DF8|",
@@ -40098,7 +39919,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -40112,7 +39932,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 1,
+      "losses": 3,
       "coverage": {
         "sections": [
           {
@@ -40301,19 +40121,16 @@
       "fragment": false,
       "error": null,
       "facts": 534,
-      "kept": 444,
+      "kept": 454,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -40335,8 +40152,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-85C3-E98E58B45DE9|",
@@ -40349,7 +40164,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -40362,7 +40176,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 3,
+      "losses": 5,
       "coverage": {
         "sections": [
           {
@@ -40595,19 +40409,16 @@
       "fragment": false,
       "error": null,
       "facts": 441,
-      "kept": 360,
+      "kept": 370,
       "missing": [
         "city Beaverton",
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
         "country US",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -40622,8 +40433,6 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A66|",
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-86C3-F98E59B45DF9|",
@@ -40635,7 +40444,6 @@
         "postalCode 97266",
         "state OR",
         "streetAddressLine 1002 Healthcare Dr",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -40648,7 +40456,7 @@
         "time 2015-06-23",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -40869,17 +40677,14 @@
       "fragment": false,
       "error": null,
       "facts": 141,
-      "kept": 88,
+      "kept": 93,
       "missing": [
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11367-0",
         "code 2.16.840.1.113883.6.96|225773000",
         "code 2.16.840.1.113883.6.96|281694009",
         "code 2.16.840.1.113883.6.96|394849002",
         "code 2.16.840.1.113883.6.96|409623005",
         "code 2.16.840.1.113883.6.96|449868002",
-        "family Florence",
-        "given Nurse",
         "id 031B375E-E1AA-4602-9855-F65EC3BBEE50|",
         "id 2.16.840.1.113883.4.1|444222222",
         "id 20CF14FB-B65C-4C8C-A54D-B0CCA834C18C|",
@@ -40888,8 +40693,6 @@
         "id 8DFACD73-1682-4CC4-9351-E54CCEA83612|",
         "id A5B64706-9438-4D13-8DCF-651DA3EF83BF|",
         "id CBCBF20A-D011-449F-87D1-A23CC3E5F7CF|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "suffix RN",
         "time 2009-02-14",
         "time 2013-06-13",
         "time 2013-06-16",
@@ -40897,7 +40700,7 @@
         "time 2013-08-01",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -40960,17 +40763,14 @@
       "fragment": false,
       "error": null,
       "facts": 141,
-      "kept": 88,
+      "kept": 93,
       "missing": [
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11367-0",
         "code 2.16.840.1.113883.6.96|225773000",
         "code 2.16.840.1.113883.6.96|281694009",
         "code 2.16.840.1.113883.6.96|394849002",
         "code 2.16.840.1.113883.6.96|409623005",
         "code 2.16.840.1.113883.6.96|449868002",
-        "family Florence",
-        "given Nurse",
         "id 031B375E-E1AA-4602-9855-F65EC3BBEE50|",
         "id 2.16.840.1.113883.4.1|444222222",
         "id 20CF14FB-B65C-4C8C-A54D-B0CCA834C18C|",
@@ -40979,8 +40779,6 @@
         "id 8DFACD73-1682-4CC4-9351-E54CCEA83612|",
         "id A5B64706-9438-4D13-8DCF-651DA3EF83BF|",
         "id CBCBF20A-D011-449F-87D1-A23CC3E5F7CF|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "suffix RN",
         "time 2009-02-14",
         "time 2013-06-13",
         "time 2013-06-16",
@@ -40988,7 +40786,7 @@
         "time 2013-08-01",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -41337,7 +41135,7 @@
         "time 2013-08-20T11:20-08:00",
         "time 2013-09-02"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -41403,7 +41201,7 @@
         "time 2013-07-30",
         "time 2013-08-20T11:20-08:00"
       ],
-      "losses": 1,
+      "losses": 2,
       "coverage": {
         "sections": [
           {
@@ -41649,7 +41447,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -41882,7 +41680,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 12,
+      "losses": 15,
       "coverage": {
         "sections": [
           {
@@ -42118,7 +41916,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -42344,7 +42142,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -42570,7 +42368,7 @@
         "time 2012-08-26",
         "time 732497932932937937327393270"
       ],
-      "losses": 6,
+      "losses": 9,
       "coverage": {
         "sections": [
           {
@@ -42796,7 +42594,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -43023,7 +42821,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -43249,7 +43047,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -43476,7 +43274,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -43703,7 +43501,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -43940,7 +43738,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -44166,7 +43964,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -44401,7 +44199,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -44621,7 +44419,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -44845,7 +44643,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -45071,7 +44869,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -45297,7 +45095,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -45523,7 +45321,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -45749,7 +45547,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -45976,7 +45774,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -46203,7 +46001,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -46429,7 +46227,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -46657,7 +46455,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -46873,7 +46671,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -47098,7 +46896,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -47324,7 +47122,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -47550,7 +47348,7 @@
         "time 2012-08-26",
         "time 2012-09-12T00:00:00-00:00"
       ],
-      "losses": 5,
+      "losses": 8,
       "coverage": {
         "sections": [
           {
@@ -49129,16 +48927,13 @@
       "fragment": false,
       "error": null,
       "facts": 516,
-      "kept": 431,
+      "kept": 441,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|75310-3",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|185349003",
         "code 2.16.840.1.113883.6.96|40388003",
-        "family Florence",
-        "given Nurse",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
         "id 2.16.840.1.113883.3.3719|",
@@ -49153,12 +48948,9 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A66|",
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-83C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-86C3-F98E59B45DF9|",
         "id EC8A6FF8-JD4B-1F7E-87C3-E98E58B45DE9|",
-        "suffix RN",
         "time 2015-07-29",
         "time 2019-06-10",
         "time 2019-12-01",
@@ -49172,7 +48964,7 @@
         "time 2020-06-23",
         "time 2020-06-24T11:00-05:00"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -49444,17 +49236,14 @@
       "fragment": false,
       "error": null,
       "facts": 399,
-      "kept": 343,
+      "kept": 353,
       "missing": [
         "city Portland",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75324-4",
         "code 2.16.840.1.113883.6.259|1160-1",
         "code 2.16.840.1.113883.6.96|161901003",
         "code 2.16.840.1.113883.6.96|260385009",
-        "family McDonald",
-        "given Mary",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -49471,15 +49260,12 @@
         "id AB1791B0-5C71-11DB-B0DE-0800200C9A68|",
         "id AB1791B0-5C71-11DB-B0DE-2222222X2Z33|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-84C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-88C3-E98E58B45DF9|",
         "id EC8A6FF8-ED4B-4F7E-89C3-E98E58B45DF9|",
         "id EC8A6FF8-JD4B-1F7E-87C3-E98E58B45DE9|",
         "id F1AA44DD-6F39-4F5C-B267-297C3865CD7X|",
         "id F1AA44XD-6F39-4F5C-B267-897C3875CD7X|",
-        "suffix RN",
         "time 1980-05-01",
         "time 200130311",
         "time 2005-05-01",
@@ -49492,7 +49278,7 @@
         "time 2015-07-01",
         "time 2020-06-15T11:00-05:00"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {
@@ -49984,10 +49770,9 @@
       "fragment": false,
       "error": null,
       "facts": 366,
-      "kept": 303,
+      "kept": 313,
       "missing": [
         "city Beaverton",
-        "code 2.16.840.1.113883.6.101|163W00000X",
         "code 2.16.840.1.113883.6.1|11323-3",
         "code 2.16.840.1.113883.6.1|75310-3",
         "code 2.16.840.1.113883.6.96|161901003",
@@ -49995,8 +49780,6 @@
         "code 2.16.840.1.113883.6.96|282291009",
         "code 2.16.840.1.113883.6.96|82094008",
         "country US",
-        "family Florence",
-        "given Nurse",
         "id 1.3.6.1.4.1.42424242.4.12354.4.4.4.5.4|",
         "id 1EEB1E51-EE1D-1234-11XY-11Z11DDB111Z|",
         "id 2.16.840.1.113883.19.5.9999.456|2981823",
@@ -50011,8 +49794,6 @@
         "id AB1791B0-5C72-11DB-B0DE-0800200C9A68|",
         "id B03805BD-2EB6-4AB8-A9FF-473C6653971A|",
         "id C1296315-9A6D-45A2-AAC0-EE225D375409|",
-        "id D839038B-7171-4165-A760-467925B43857|",
-        "id D839038B-7172-4165-A760-467925B43857|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE7|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE8|",
         "id EC8A6FF8-ED4B-4F7E-82C3-E98E58B45DE9|",
@@ -50024,7 +49805,6 @@
         "postalCode 97006",
         "state OR",
         "streetAddressLine 2472 Rocky place",
-        "suffix RN",
         "time 1980-05-01",
         "time 2005-05-01",
         "time 2011-02-27",
@@ -50038,7 +49818,7 @@
         "time 2015-06-23T10:00",
         "time 2015-07-01"
       ],
-      "losses": 2,
+      "losses": 4,
       "coverage": {
         "sections": [
           {

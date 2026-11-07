@@ -49,7 +49,9 @@ still converted by their own templates, and narrative-only sections (chief compl
 course, discharge instructions and the like) keep their template both ways. Narrative becomes XHTML and back. Identifiers
 follow the guidance: OIDs to URIs through HL7 Terminology, `urn:oid:` and `urn:uuid:` otherwise.
 Timestamps keep their precision and time zone. Identical Practitioners and Organizations are
-merged.
+merged. Each author of an entry is also a US Core Provenance of its resource (the author agent,
+on behalf of its organization) unless US Core cannot take it (a person with no organization or
+role is reported instead), and Provenance authors become entry authors again in CDA.
 
 ## Measured
 
@@ -63,12 +65,13 @@ Every CI run converts the HL7 C-CDA and CDA examples and the ONC test data (all 
 | Entries recognised | 94.8% (sections 95.4%); the rest are listed by template in the report |
 | FHIR resources valid against US Core 6.1.0 | 99.7% |
 | CDA written back conforming to the C-CDA 5.0.0 templates | 92.2% of documents, 99.7% of templated elements |
-| Round trip CDA → FHIR → CDA, significant values kept | 73.1% |
-| Round trip FHIR → CDA → FHIR, significant values kept | 98.7% |
+| Round trip CDA → FHIR → CDA, significant values kept | 73.7% |
+| Round trip FHIR → CDA → FHIR, significant values kept | 98.6% |
 | Agreement with the C-CDA on FHIR consensus outputs | 88.8%: every value of the recommended allergy, problem, procedure, immunization, patient and encounter resources; the drafts' differences from the tables are listed in the report |
 
 The CDA round trip loses what C-CDA on FHIR maps to nothing: the ids and times of concern acts,
-the allergy observation's value (FHIR keeps only its type and category), a second author. Every
+the allergy observation's value (FHIR keeps only its type and category), an author with no
+organization (US Core Provenance cannot name a bare Practitioner as its agent). Every
 conversion reports what it could not carry over — elements outside the model, templates not
 mapped, codes a ConceptMap has no target for — with the path and the line in the XML.
 

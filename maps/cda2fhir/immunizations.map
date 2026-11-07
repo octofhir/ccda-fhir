@@ -2,7 +2,7 @@
 /// name = 'CdaImmunizationsToFhir'
 /// title = 'C-CDA immunizations to US Core Immunization'
 /// status = 'active'
-/// description = 'Immunization Activity to US Core 6.1.0 Immunization, after "Immunizations CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Immunization Activity to US Core 6.1.0 Immunization, each of its authors a US Core Provenance, after "Immunizations CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-immunizations-to-fhir" = "CdaImmunizationsToFhir"
 
@@ -19,7 +19,11 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
 
 group ImmunizationsSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.substanceAdministration : ImmunizationActivity as activity where (moodCode = 'EVN') -> bundle.entry as resourceEntry, resourceEntry.resource = create('Immunization') as immunization, uuid() as id, immunization.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), immunization.patient as patient, patient.reference = append('urn:uuid:', patientId) then Immunization(activity, immunization, bundle);
+    entry.substanceAdministration : ImmunizationActivity as activity where (moodCode = 'EVN') -> bundle.entry as resourceEntry, resourceEntry.resource = create('Immunization') as immunization, uuid() as id, immunization.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), immunization.patient as patient, patient.reference = append('urn:uuid:', patientId) then {
+      activity then Immunization(activity, immunization, bundle);
+      // CF-immunizations: `/author` → Provenance.
+      activity.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

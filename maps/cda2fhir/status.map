@@ -2,7 +2,7 @@
 /// name = 'CdaStatusToFhir'
 /// title = 'C-CDA functional and mental status to US Core'
 /// status = 'active'
-/// description = 'Functional Status and Mental Status sections to US Core 6.1.0 Observations of the functional-status and cognitive-status categories (organizers as panels with their members, assessment scales as screening and assessment), and the functional and cognitive status problems of C-CDA 2.1 to Conditions. C-CDA on FHIR 2.0.0 has no table for these: the maps follow the templates and the US Core profiles.'
+/// description = 'Functional Status and Mental Status sections to US Core 6.1.0 Observations of the functional-status and cognitive-status categories (organizers as panels with their members, assessment scales as screening and assessment), and the functional and cognitive status problems of C-CDA 2.1 to Conditions; the authors of each US Core Provenance. C-CDA on FHIR 2.0.0 has no table for these: the maps follow the templates and the US Core profiles.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-status-to-fhir" = "CdaStatusToFhir"
 
@@ -35,9 +35,18 @@ group StatusSection(source section : Section, target compositionSection, target 
   // Problems written as Problem Concern Acts (as FHIR → CDA writes conditions).
   section then ProblemSection(section, compositionSection, bundle, patientId);
   section.entry as entry then {
-    entry.organizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as panel, uuid() as id, panel.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), panel.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusPanel(organizer, panel, bundle, patientId, category);
-    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.68') or hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.73')) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusProblem(observation, condition, bundle, category, patientId);
-    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.68').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.73').not()) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusObservation(observation, resource, bundle, patientId, category);
+    entry.organizer as organizer -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as panel, uuid() as id, panel.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), panel.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      organizer then StatusPanel(organizer, panel, bundle, patientId, category);
+      organizer.author as author then AuthorProvenance(author, id, bundle);
+    };
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.68') or hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.73')) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      observation then StatusProblem(observation, condition, bundle, category, patientId);
+      observation.author as author then AuthorProvenance(author, id, bundle);
+    };
+    entry.observation as observation where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.68').not() and hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.73').not()) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Observation') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+      observation then StatusObservation(observation, resource, bundle, patientId, category);
+      observation.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 
@@ -55,7 +64,10 @@ group StatusPanel(source organizer : Organizer, target panel : Observation, targ
   };
   organizer.author last as author -> panel.performer as ref then AuthorReference(author, ref, bundle);
   organizer.component as component then {
-    component.observation as observation -> bundle.entry as memberEntry, memberEntry.resource = create('Observation') as member, uuid() as id, member.id = id, memberEntry.fullUrl = append('urn:uuid:', id), panel.hasMember as ref, ref.reference = append('urn:uuid:', id), member.subject as subject, subject.reference = append('urn:uuid:', patientId) then StatusObservation(observation, member, bundle, patientId, category);
+    component.observation as observation -> bundle.entry as memberEntry, memberEntry.resource = create('Observation') as member, uuid() as id, member.id = id, memberEntry.fullUrl = append('urn:uuid:', id), panel.hasMember as ref, ref.reference = append('urn:uuid:', id), member.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+        observation then StatusObservation(observation, member, bundle, patientId, category);
+        observation.author as author then AuthorProvenance(author, id, bundle);
+      };
   };
 }
 

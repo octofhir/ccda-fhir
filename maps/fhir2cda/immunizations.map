@@ -2,7 +2,7 @@
 /// name = 'FhirImmunizationsToCda'
 /// title = 'US Core Immunization to C-CDA immunizations'
 /// status = 'active'
-/// description = 'US Core 6.1.0 Immunization to Immunization Activity, after "Immunizations FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+/// description = 'US Core 6.1.0 Immunization to Immunization Activity (its authors from US Core Provenance), after "Immunizations FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-immunizations-to-cda" = "FhirImmunizationsToCda"
 
@@ -47,6 +47,8 @@ group ImmunizationToActivity(source immunization : Immunization, source bundle :
   immunization.performer as performer where (function.coding.code.empty() or function.coding.code contains 'AP') then {
     performer.actor as ref then ReferenceToPerformer(ref, bundle, activity);
   };
+  // The authors: the US Core Provenance authors (CF-immunizations maps `/author` to Provenance).
+  immunization where (id.exists()) -> evaluate(immunization, %bundle.entry.where(resource.is(Immunization) and resource.id = %immunization.id).fullUrl.first()) as ownUrl, evaluate(immunization, '|') as written then ProvenanceAuthors(ownUrl, bundle, written, activity);
   immunization.statusReason as reason -> activity.entryRelationship as relationship, relationship.typeCode = 'RSON', relationship.observation as refusal then {
     reason -> refusal.classCode = 'OBS', refusal.moodCode = 'EVN';
     reason -> refusal.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.53', template.extension = '2024-05-01';

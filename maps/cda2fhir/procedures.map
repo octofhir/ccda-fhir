@@ -2,7 +2,7 @@
 /// name = 'CdaProceduresToFhir'
 /// title = 'C-CDA procedures to US Core Procedure'
 /// status = 'active'
-/// description = 'Procedure Activity Procedure to US Core 6.1.0 Procedure, after "Procedures CDA → FHIR" of C-CDA on FHIR 2.0.0.'
+/// description = 'Procedure Activity Procedure to US Core 6.1.0 Procedure, each of its authors a US Core Provenance, after "Procedures CDA → FHIR" of C-CDA on FHIR 2.0.0.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-procedures-to-fhir" = "CdaProceduresToFhir"
 
@@ -23,11 +23,11 @@ imports "http://octofhir.com/ccda-fhir/StructureMap/cda-devices-to-fhir"
 
 group ProceduresSection(source section : Section, target compositionSection, target bundle : Bundle, source patientId : string) {
   section.entry as entry then {
-    entry.procedure : ProcedureActivityProcedure as procedure -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle, patientId);
+    entry.procedure : ProcedureActivityProcedure as procedure -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle, patientId, id);
   };
 }
 
-group Procedure(source procedure : ProcedureActivityProcedure, target resource : Procedure, target bundle : Bundle, source patientId : string) {
+group Procedure(source procedure : ProcedureActivityProcedure, target resource : Procedure, target bundle : Bundle, source patientId : string, source procedureId : string) {
   procedure -> resource.meta as meta, meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-procedure';
   procedure.id as id -> resource.identifier as i then IIToIdentifier(id, i);
   procedure where (negationInd = true) -> resource.status = 'not-done';
@@ -44,6 +44,8 @@ group Procedure(source procedure : ProcedureActivityProcedure, target resource :
   };
   procedure.targetSiteCode as site -> resource.bodySite as cc then CDToCodeableConcept(site, cc);
   procedure.author last as author -> resource.recorder as ref then AuthorReference(author, ref, bundle);
+  // CF-procedures: the latest author is the recorder; any author can be in a Provenance.
+  procedure.author as author then AuthorProvenance(author, procedureId, bundle);
   procedure.performer as performer -> resource.performer as p, p.actor as ref then PerformerReference(performer, ref, bundle);
   procedure.entryRelationship as relationship then {
     relationship.observation : Indication as indication then {
@@ -73,7 +75,7 @@ group MedicalEquipmentSection(source section : Section, target compositionSectio
     entry.organizer : MedicalEquipmentOrganizer as organizer then {
       organizer.component as component then {
         component.supply : NonMedicinalSupplyActivity as supply then SupplyDevices(supply, compositionSection, bundle, patientId);
-        component.procedure as procedure where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.14')) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle, patientId);
+        component.procedure as procedure where (hasTemplateIdOf('urn:oid:2.16.840.1.113883.10.20.22.4.14')) -> bundle.entry as resourceEntry, resourceEntry.resource = create('Procedure') as resource, uuid() as id, resource.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), resource.subject as subject, subject.reference = append('urn:uuid:', patientId) then Procedure(procedure, resource, bundle, patientId, id);
       };
     };
   };

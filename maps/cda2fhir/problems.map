@@ -2,7 +2,7 @@
 /// name = 'CdaProblemsToFhir'
 /// title = 'C-CDA problems to US Core Condition'
 /// status = 'active'
-/// description = 'Problem Concern acts to US Core 6.1.0 Condition (Problems and Health Concerns), after "Problems CDA → FHIR" of C-CDA on FHIR 2.0.0: each Problem observation is one Condition.'
+/// description = 'Problem Concern acts to US Core 6.1.0 Condition (Problems and Health Concerns), after "Problems CDA → FHIR" of C-CDA on FHIR 2.0.0: each Problem observation is one Condition, each of its authors a US Core Provenance.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/cda-problems-to-fhir" = "CdaProblemsToFhir"
 
@@ -33,12 +33,26 @@ group ProblemSection(source section : Section, target compositionSection, target
     // point at entries converted where they are).
     entry.act : HealthConcernAct as concern then {
       concern.entryRelationship as relationship then {
-        relationship.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then HealthConcern(concern, observation, condition, bundle, patientId);
+        relationship.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+          observation then HealthConcern(concern, observation, condition, bundle, patientId);
+          // A Provenance per author; the concern's authors when the observation has none.
+          observation.author as author then AuthorProvenance(author, id, bundle);
+          observation where (author.empty()) then {
+            concern.author as author then AuthorProvenance(author, id, bundle);
+          };
+        };
       };
     };
     entry.act : ProblemConcernAct as act then {
       act.entryRelationship as relationship then {
-        relationship.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then Condition(section, act, observation, condition, bundle, patientId);
+        relationship.observation : ProblemObservation as observation -> bundle.entry as resourceEntry, resourceEntry.resource = create('Condition') as condition, uuid() as id, condition.id = id, resourceEntry.fullUrl = append('urn:uuid:', id), compositionSection.entry as ref, ref.reference = append('urn:uuid:', id), condition.subject as subject, subject.reference = append('urn:uuid:', patientId) then {
+          observation then Condition(section, act, observation, condition, bundle, patientId);
+          // A Provenance per author; the concern's authors when the observation has none.
+          observation.author as author then AuthorProvenance(author, id, bundle);
+          observation where (author.empty()) then {
+            act.author as author then AuthorProvenance(author, id, bundle);
+          };
+        };
       };
     };
   };
@@ -107,7 +121,10 @@ group ProblemObservationToCondition(source observation : ProblemObservation, tar
   };
   // Supporting observations (an assessment scale, …): Observations the Condition's evidence names.
   observation.entryRelationship as relationship where (typeCode = 'SPRT') then {
-    relationship.observation as supporting -> bundle.entry as evidenceEntry, evidenceEntry.resource = create('Observation') as evidenceObservation, uuid() as id, evidenceObservation.id = id, evidenceEntry.fullUrl = append('urn:uuid:', id), evidenceObservation.subject as subject, subject.reference = append('urn:uuid:', patientId), condition.evidence as evidence, evidence.detail as ref, ref.reference = append('urn:uuid:', id) then SupportingObservation(supporting, evidenceObservation, bundle, patientId);
+    relationship.observation as supporting -> bundle.entry as evidenceEntry, evidenceEntry.resource = create('Observation') as evidenceObservation, uuid() as id, evidenceObservation.id = id, evidenceEntry.fullUrl = append('urn:uuid:', id), evidenceObservation.subject as subject, subject.reference = append('urn:uuid:', patientId), condition.evidence as evidence, evidence.detail as ref, ref.reference = append('urn:uuid:', id) then {
+      supporting then SupportingObservation(supporting, evidenceObservation, bundle, patientId);
+      supporting.author as author then AuthorProvenance(author, id, bundle);
+    };
   };
 }
 

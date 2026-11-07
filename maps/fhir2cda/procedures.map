@@ -2,7 +2,7 @@
 /// name = 'FhirProceduresToCda'
 /// title = 'US Core Procedure to C-CDA procedures'
 /// status = 'active'
-/// description = 'US Core 6.1.0 Procedure to Procedure Activity Procedure, after "Procedures FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
+/// description = 'US Core 6.1.0 Procedure to Procedure Activity Procedure (its authors the recorder and the US Core Provenance authors), after "Procedures FHIR → CDA" of C-CDA on FHIR 2.0.0 (single-vendor mapping).'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-procedures-to-cda" = "FhirProceduresToCda"
 
@@ -32,6 +32,7 @@ group ProcedureToCda(source resource : FhirProcedure, source bundle : Bundle, ta
   resource where (iif(performed.hasValue() or performed.start.exists() or performed.end.exists(), false, true)) -> procedure.effectiveTime as time, time.nullFlavor = 'UNK';
   resource.bodySite as site -> procedure.targetSiteCode = create('CD') as c then CodeableConceptToCD(site, c);
   resource.recorder as ref -> evaluate(resource, 'UNK') as time then ReferenceToAuthor(ref, bundle, time, procedure);
+  resource where (id.exists()) -> evaluate(resource, %bundle.entry.where($this.resource.is(Procedure) and $this.resource.id = %resource.id).fullUrl.first()) as ownUrl, evaluate(resource, iif(recorder.reference.exists(), '|' + recorder.reference.join('|') + '|', '|')) as written then ProvenanceAuthors(ownUrl, bundle, written, procedure);
   resource.performer as performer then {
     performer.actor as ref then ReferenceToPerformer(ref, bundle, procedure);
   };

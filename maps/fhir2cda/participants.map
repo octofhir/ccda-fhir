@@ -2,7 +2,7 @@
 /// name = 'FhirParticipantsToCda'
 /// title = 'FHIR R4 participants to CDA'
 /// status = 'active'
-/// description = 'Practitioner, Organization and Device to CDA assigned authors, entities and organizations.'
+/// description = 'Practitioner, Organization and Device to CDA assigned authors, entities and organizations; the author agents of US Core 6.1.0 Provenance to entry authors, after "CDA ↔ FHIR Provenance" of the C-CDA on FHIR 2.0.0 mapping guidance.'
 
 map "http://octofhir.com/ccda-fhir/StructureMap/fhir-participants-to-cda" = "FhirParticipantsToCda"
 
@@ -10,6 +10,7 @@ uses "http://hl7.org/fhir/StructureDefinition/Practitioner" alias Practitioner a
 uses "http://hl7.org/fhir/StructureDefinition/PractitionerRole" alias PractitionerRole as source
 uses "http://hl7.org/fhir/StructureDefinition/Organization" alias Organization as source
 uses "http://hl7.org/fhir/StructureDefinition/Device" alias Device as source
+uses "http://hl7.org/fhir/StructureDefinition/Provenance" alias Provenance as source
 uses "http://hl7.org/cda/stds/core/StructureDefinition/AssignedAuthor" alias AssignedAuthor as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/AssignedEntity" alias AssignedEntity as target
 uses "http://hl7.org/cda/stds/core/StructureDefinition/Organization" alias CdaOrganization as target
@@ -101,6 +102,69 @@ group ReferenceToAuthor(source ref : Reference, source bundle : Bundle, source t
       time as t where (t.toString() != 'UNK') -> author.time as at, at.value = t;
       time as t where (t.toString() = 'UNK') -> author.time as at, at.nullFlavor = 'UNK';
       role -> author.assignedAuthor as assigned then RoleToAssignedAuthor(role, bundle, assigned);
+    };
+  };
+}
+
+// The authors US Core Provenance gives a resource (mapping guidance, "CDA ↔ FHIR Provenance"):
+// each author agent of a Provenance whose target is `ownUrl` (the resource's fullUrl; references
+// point at fullUrls before the maps run), as an author (C-CDA Author Participation) of
+// `statement` at the recorded time. An agent the resource names itself is left to the domain
+// map, which writes it from the resource (`.recorder`, `.requester`, …): `written` holds those
+// references, each between `|`.
+group ProvenanceAuthors(source ownUrl : string, source bundle : Bundle, source written : string, target statement) {
+  bundle.entry as provenanceEntry then {
+    provenanceEntry.resource : Provenance as provenance where (target.where(reference = %ownUrl).exists()) then {
+      provenance.agent as agent where (type.coding.where(system = 'http://terminology.hl7.org/CodeSystem/provenance-participant-type' and code = 'author').exists() and iif(%written.contains('|' + who.reference + '|'), false, true)) -> evaluate(provenance, iif(recorded.hasValue(), recorded, 'UNK')) as time then AgentToAuthor(agent, bundle, time, statement);
+    };
+  };
+}
+
+// A Provenance agent as an author at `time` (a FHIR instant, or 'UNK'): who it is, and on whose
+// behalf as the represented organization when who does not say it already.
+group AgentToAuthor(source agent, source bundle : Bundle, source time, target statement) {
+  agent.who as who then {
+    bundle.entry as entry where (fullUrl = %who.reference) then {
+      entry.resource : Practitioner as practitioner -> statement.author as author, author.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.119' then {
+        time then AuthorTime(time, author);
+        practitioner -> author.assignedAuthor as assigned then {
+          practitioner then PractitionerToAssignedAuthor(practitioner, assigned);
+          agent then OnBehalfOf(agent, bundle, assigned);
+        };
+      };
+      entry.resource : PractitionerRole as role -> statement.author as author, author.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.119' then {
+        time then AuthorTime(time, author);
+        role -> author.assignedAuthor as assigned then {
+          role then RoleToAssignedAuthor(role, bundle, assigned);
+          role where (organization.empty()) then OnBehalfOf(agent, bundle, assigned);
+        };
+      };
+      entry.resource : Device as device -> statement.author as author, author.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.119' then {
+        time then AuthorTime(time, author);
+        device -> author.assignedAuthor as assigned then {
+          device then DeviceToAssignedAuthor(device, bundle, assigned);
+          device where (owner.empty()) then OnBehalfOf(agent, bundle, assigned);
+        };
+      };
+      // An organization alone, as the document's author has it (Author in document.map).
+      entry.resource : Organization as organization -> statement.author as author, author.templateId as template, template.root = '2.16.840.1.113883.10.20.22.4.119' then {
+        time then AuthorTime(time, author);
+        organization -> author.assignedAuthor as assigned, assigned.id as id, id.nullFlavor = 'NA', assigned.representedOrganization as org then OrganizationToOrganization(organization, org);
+      };
+    };
+  };
+}
+
+group AuthorTime(source time, target author : Author) {
+  time as t where (t.toString() != 'UNK') -> author.time as at, at.value = t;
+  time as t where (t.toString() = 'UNK') -> author.time as at, at.nullFlavor = 'UNK';
+}
+
+// The Organization an agent acted on behalf of, as the represented organization.
+group OnBehalfOf(source agent, source bundle : Bundle, target assigned : AssignedAuthor) {
+  agent.onBehalfOf as ref then {
+    bundle.entry as entry where (fullUrl = %ref.reference) then {
+      entry.resource : Organization as organization -> assigned.representedOrganization as org then OrganizationToOrganization(organization, org);
     };
   };
 }
