@@ -16,8 +16,9 @@ logical model, and C-CDA templates as profiles.
    they point to, so a map reads `originalText.xmlText` and gets words, not `#id`. A Note
    Activity's text gets the referenced narrative as XHTML.
 3. **Map.** `maps/cda2fhir/document.map` (group `ClinicalDocument`) runs, importing the others.
-4. **Finish** (`src/prepare.rs`). Entries a map marked as left out are taken out and reported
-   (see §5, "What cannot be carried over"); identical Practitioners, Organizations and the like are merged;
+4. **Finish** (`src/prepare.rs`). Entries a map marked as left out are settled: an author
+   Provenance gets the organization of a participant with the same id, or is taken out and
+   reported (see §5, "What cannot be carried over"); identical Practitioners, Organizations and the like are merged;
    Encounters with the same identifier are merged; a note's encounter named by its id becomes a
    reference to the Bundle entry; section narrative becomes XHTML.
 
@@ -77,7 +78,7 @@ examples).
 | File | Holds |
 |---|---|
 | `maps/*/datatypes.map` | II ⇄ Identifier, CD ⇄ CodeableConcept, TS ⇄ dateTime, PQ ⇄ Quantity, AD, PN, TEL |
-| `maps/*/participants.map` | authors, performers, organizations, locations, comments |
+| `maps/*/participants.map` | authors (and their US Core Provenance), performers, organizations, locations, comments; `cda2fhir/organization.map` converts one representedOrganization for the Finish step |
 | `maps/*/document.map` | the header, the section routing by template (CDA) or LOINC code (FHIR) |
 | `maps/*/<domain>.map` | one domain each way: `allergies`, `problems`, `medications`, `immunizations`, `results` (and vital signs), `procedures`, `encounters`, `social`, `notes`, `plans` (goals, plan of treatment), `status` (functional, mental), `family`, `devices` |
 | `data/conceptmaps/` | C-CDA on FHIR ConceptMaps (used through `translate`) and OID ⇄ URI |
@@ -135,7 +136,13 @@ C-CDA on FHIR examples do, and count it in the report rather than inventing a va
 reported, not written: group `LeftOut` of `cda2fhir/participants.map` writes a marker entry with
 the message and the resource it is about, and the Finish step takes it out and adds the message
 to the report. An entry author with no organization is the case today: US Core Provenance needs
-`onBehalfOf` for a Practitioner (provenance-1), so that author gets no Provenance.
+`onBehalfOf` for a Practitioner (provenance-1). A group sees only its author, so the map marks
+that Provenance with the author's ids as well; the Finish step looks for a participant of the
+document (assigned author or entity, not a device) with exactly the same id (root and
+extension; an OID root alone names an assigning authority, not a person) and a
+representedOrganization, converts that organization with `cda2fhir/organization.map` and sets
+`onBehalfOf` to it when the ids lead to exactly one. Otherwise that author gets no Provenance
+and the report says so.
 
 **Translations that have no target** are left out with a warning (the engine runs with
 `with_lenient_translations(true)`): a code nobody can map should not fail a whole document.

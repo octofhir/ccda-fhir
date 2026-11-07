@@ -6,11 +6,11 @@
 |---|---|
 | Sections recognised | 2951 of 3092 (95.4%) |
 | Entries recognised | 3838 of 4048 (94.8%) |
-| Round trip CDA → FHIR → CDA, significant values kept | 46951 of 63717 (73.7%) |
-| Round trip FHIR → CDA → FHIR, significant values of the resources kept | 52383 of 53107 (98.6%) |
-| Resources valid against US Core 6.1.0 | 11038 of 11068 (99.7%) |
-| CDA written back conforming to C-CDA 5.0.0 templates | 459 of 498 documents (92.2%); 14961 of 15011 templated elements (99.7%) |
-| Losses reported | 1053 |
+| Round trip CDA → FHIR → CDA, significant values kept | 46953 of 63717 (73.7%) |
+| Round trip FHIR → CDA → FHIR, significant values of the resources kept | 52402 of 53144 (98.6%) |
+| Resources valid against US Core 6.1.0 | 11069 of 11099 (99.7%) |
+| CDA written back conforming to C-CDA 5.0.0 templates | 459 of 498 documents (92.2%); 14962 of 15012 templated elements (99.7%) |
+| Losses reported | 1024 |
 
 ## Resources
 
@@ -30,12 +30,12 @@
 | Medication | 435 |
 | MedicationRequest | 537 |
 | Observation | 2349 |
-| Organization | 1241 |
+| Organization | 1243 |
 | Patient | 493 |
 | Practitioner | 1599 |
 | PractitionerRole | 774 |
 | Procedure | 261 |
-| Provenance | 476 |
+| Provenance | 505 |
 | ServiceRequest | 373 |
 
 ## US Core validation errors
@@ -98,7 +98,7 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (456), no-a-p 
 
 | Stage | Count |
 |---|---|
-| map | 846 |
+| map | 817 |
 | narrative | 21 |
 | read | 186 |
 
@@ -111,7 +111,7 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (456), no-a-p 
 | country | 138 |
 | family | 120 |
 | given | 125 |
-| id | 2963 |
+| id | 2962 |
 | postalCode | 151 |
 | prefix | 72 |
 | quantity | 314 |
@@ -205,13 +205,13 @@ Invariants that did not evaluate: 4537-5402 (174), author-details (456), no-a-p 
 | corpus/C-CDA-Examples/Documents/CCD/CCD 1/CCD.XML | 13/15 | 27/31 | 64.7% | 5 |
 | corpus/C-CDA-Examples/Documents/CCD/CCD 2/CCD.xml | 7/7 | 5/7 | 71.7% | 11 |
 | corpus/C-CDA-Examples/Documents/Care Plan/Care_Plan.xml | 2/4 | 2/7 | 66.0% | 2 |
-| corpus/C-CDA-Examples/Documents/Consultation Note/Consultation_Note.xml | 11/13 | 18/21 | 73.3% | 33 |
+| corpus/C-CDA-Examples/Documents/Consultation Note/Consultation_Note.xml | 11/13 | 18/21 | 73.8% | 18 |
 | corpus/C-CDA-Examples/Documents/Diagnostic Imaging Report/Diagnostic_Imaging_Report.xml | 0/5 | 0/5 | 98.3% | 0 |
 | corpus/C-CDA-Examples/Documents/Discharge Summary/Discharge_Summary.xml | 20/21 | 16/16 | 74.4% | 3 |
 | corpus/C-CDA-Examples/Documents/History and Physical/History_and_Physical.xml | 15/17 | 22/24 | 64.7% | 8 |
 | corpus/C-CDA-Examples/Documents/Operative Note/Operative_Note.xml | 10/16 | 9/10 | 94.7% | 0 |
 | corpus/C-CDA-Examples/Documents/Procedure Note/Procedure_Note.xml | 9/16 | 8/10 | 94.7% | 2 |
-| corpus/C-CDA-Examples/Documents/Progress Note/Progress_Note.xml | 11/12 | 13/15 | 69.7% | 21 |
+| corpus/C-CDA-Examples/Documents/Progress Note/Progress_Note.xml | 11/12 | 13/15 | 69.7% | 7 |
 | corpus/C-CDA-Examples/Documents/Referral Note/Referral_Note.xml | 15/19 | 23/31 | 59.8% | 15 |
 | corpus/C-CDA-Examples/Documents/Transfer Summary/Transfer_Summary.xml | 21/27 | 38/48 | 67.4% | 20 |
 | corpus/C-CDA-Examples/Encounters/Hospital Discharge Encounter with Billable Diagnoses/Hospital Discharge Encounter with Billable Diagnoses(C-CDA2.1).xml | 1/1 | 1/1 | 76.0% | 0 |

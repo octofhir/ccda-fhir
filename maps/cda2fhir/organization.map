@@ -1,0 +1,16 @@
+/// url = 'http://octofhir.com/ccda-fhir/StructureMap/cda-organization-to-fhir'
+/// name = 'CdaOrganizationToFhir'
+/// title = 'CDA represented organization to FHIR R4 Organization'
+/// status = 'active'
+/// description = 'A representedOrganization to Organization, as the participants map converts it: the organization a participant represents, for the US Core Provenance of an entry author with the same id that names none (the converter finds the participant in the document).'
+
+map "http://octofhir.com/ccda-fhir/StructureMap/cda-organization-to-fhir" = "CdaOrganizationToFhir"
+
+uses "http://hl7.org/cda/stds/core/StructureDefinition/Organization" alias CdaOrganization as source
+uses "http://hl7.org/fhir/StructureDefinition/Organization" alias Organization as target
+
+imports "http://octofhir.com/ccda-fhir/StructureMap/cda-participants-to-fhir"
+
+group CdaRepresentedOrganization(source src : CdaOrganization, target tgt : Organization) {
+  src then OrganizationToOrganization(src, tgt);
+}

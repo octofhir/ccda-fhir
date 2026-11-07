@@ -113,8 +113,9 @@ group AssignedAuthorToRole(source assigned : AssignedAuthor, target role : Pract
 // a person in a role (a role code or an organization) is the PractitionerRole, on behalf of the
 // organization; an organization alone is the Organization; a device is the Device, on behalf of
 // its organization. US Core requires onBehalfOf when the agent is a Practitioner or a Device
-// (provenance-1), and nothing in the entry says on whose behalf an author without an
-// organization acted: such an author gets no Provenance, and the left-out marker reports it.
+// (provenance-1). A person without an organization acted on behalf of the one a participant
+// with the same id represents elsewhere in the document, if any; otherwise, and for a device
+// without one, there is no Provenance and the left-out marker reports it.
 group AuthorProvenance(source author : Author, source targetId : string, target bundle : Bundle) {
   author.assignedAuthor as assigned where (assignedAuthoringDevice.empty() and ((assignedPerson.exists() and (code.exists() or representedOrganization.exists())) or (assignedPerson.empty() and representedOrganization.empty() and code.exists() and id.where(root.exists() or extension.exists()).exists()))) -> bundle.entry as entry, entry.resource = create('Provenance') as provenance, uuid() as provenanceId, provenance.id = provenanceId, entry.fullUrl = append('urn:uuid:', provenanceId) then {
     author then ProvenanceOf(author, targetId, provenance);
@@ -143,7 +144,22 @@ group AuthorProvenance(source author : Author, source targetId : string, target 
       };
     };
   };
-  author.assignedAuthor as assigned where (iif((assignedAuthoringDevice.empty() and ((assignedPerson.exists() and (code.exists() or representedOrganization.exists())) or (assignedPerson.empty() and representedOrganization.empty() and code.exists() and id.where(root.exists() or extension.exists()).exists()))) or (assignedPerson.empty() and assignedAuthoringDevice.empty() and representedOrganization.exists()) or (assignedAuthoringDevice.exists() and representedOrganization.exists()), false, true)) -> evaluate(assigned, 'author' + iif(id.where(root.exists()).exists(), ' ' + id.where(root.exists()).first().select(root + iif(extension.exists(), '^' + extension, '')), '') + iif(assignedAuthoringDevice.exists(), ': an authoring device with no representedOrganization; US Core Provenance requires onBehalfOf for a Device (provenance-1)', iif(assignedPerson.exists() or id.where(root.exists() or extension.exists()).exists(), ': a person with no representedOrganization; US Core Provenance requires onBehalfOf for a Practitioner (provenance-1)', ': names no person, device or organization')) + ', so it has no Provenance') as message then LeftOut(targetId, message, bundle);
+  // A person with neither an organization nor a role code: the Practitioner, on behalf of the
+  // organization another participant of the document with the same id (root and extension)
+  // represents. A group sees only its author, so the Provenance carries the left-out marker and
+  // the author's ids: the converter looks the ids up in the document and, when exactly one
+  // organization is found, sets onBehalfOf to it (group CdaRepresentedOrganization); otherwise
+  // it takes the Provenance out and reports it.
+  author.assignedAuthor as assigned where (assignedAuthoringDevice.empty() and representedOrganization.empty() and code.empty() and (assignedPerson.exists() or id.where(root.exists() or extension.exists()).exists())) -> bundle.entry as entry, entry.resource = create('Provenance') as provenance, uuid() as provenanceId, provenance.id = provenanceId, entry.fullUrl = append('urn:uuid:', provenanceId) then {
+    author then ProvenanceOf(author, targetId, provenance);
+    author -> provenance.agent as agent then {
+      author then AuthorAgentType(author, agent);
+      author -> agent.who as ref then AuthorReference(author, ref, bundle);
+    };
+    assigned -> evaluate(assigned, 'author' + iif(id.where(root.exists()).exists(), ' ' + id.where(root.exists()).first().select(root + iif(extension.exists(), '^' + extension, '')), '') + ': a person with no representedOrganization, and no participant with the same id represents one; US Core Provenance requires onBehalfOf for a Practitioner (provenance-1), so it has no Provenance') as message, provenance.extension as loss, loss.url = 'http://octofhir.com/ccda-fhir/StructureDefinition/conversion-loss', loss.value = create('string') as text, text.value = message;
+    assigned.id as ii where (root.exists()) -> provenance.extension as authorId, authorId.url = 'http://octofhir.com/ccda-fhir/StructureDefinition/conversion-loss-author-id', authorId.value = create('string') as key, key.value = evaluate(ii, root + iif(extension.exists(), '^' + extension, ''));
+  };
+  author.assignedAuthor as assigned where (iif((assignedAuthoringDevice.empty() and ((assignedPerson.exists() and (code.exists() or representedOrganization.exists())) or (assignedPerson.empty() and representedOrganization.empty() and code.exists() and id.where(root.exists() or extension.exists()).exists()))) or (assignedPerson.empty() and assignedAuthoringDevice.empty() and representedOrganization.exists()) or (assignedAuthoringDevice.exists() and representedOrganization.exists()) or (assignedAuthoringDevice.empty() and representedOrganization.empty() and code.empty() and (assignedPerson.exists() or id.where(root.exists() or extension.exists()).exists())), false, true)) -> evaluate(assigned, 'author' + iif(id.where(root.exists()).exists(), ' ' + id.where(root.exists()).first().select(root + iif(extension.exists(), '^' + extension, '')), '') + iif(assignedAuthoringDevice.exists(), ': an authoring device with no representedOrganization; US Core Provenance requires onBehalfOf for a Device (provenance-1)', ': names no person, device or organization') + ', so it has no Provenance') as message then LeftOut(targetId, message, bundle);
 }
 
 // The resource a Provenance is about, its profile, and when: the author's time as an instant

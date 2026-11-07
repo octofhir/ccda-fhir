@@ -50,8 +50,9 @@ course, discharge instructions and the like) keep their template both ways. Narr
 follow the guidance: OIDs to URIs through HL7 Terminology, `urn:oid:` and `urn:uuid:` otherwise.
 Timestamps keep their precision and time zone. Identical Practitioners and Organizations are
 merged. Each author of an entry is also a US Core Provenance of its resource (the author agent,
-on behalf of its organization) unless US Core cannot take it (a person with no organization or
-role is reported instead), and Provenance authors become entry authors again in CDA.
+on behalf of its organization, or of the one a participant with the same id represents) unless
+US Core cannot take it (a person with no organization or role, and no participant with its id
+representing one, is reported instead), and Provenance authors become entry authors again in CDA.
 
 ## Measured
 

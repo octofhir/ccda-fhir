@@ -37,7 +37,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 use fml_check::{CoreDefinitions, Definitions, PackageDefinitions, Release, TemplateId};
-use fml_engine::{ConceptMapSet, Engine, FhirPathExpressions, MapSet, RandomIds, SequentialIds};
+use fml_engine::{
+    ConceptMapSet, Engine, FhirPathExpressions, IdGenerator, MapSet, RandomIds, SequentialIds,
+};
 use fml_model::model::StructureMap;
 use serde_json::Value;
 
@@ -50,6 +52,8 @@ pub const CLINICAL_DOCUMENT: &str =
 pub const TO_FHIR: &str = "http://octofhir.com/ccda-fhir/StructureMap/ccda-to-fhir";
 /// The map from a FHIR document Bundle to a CDA document.
 pub const TO_CDA: &str = "http://octofhir.com/ccda-fhir/StructureMap/fhir-to-ccda";
+/// The map from a CDA representedOrganization to an Organization.
+const ORGANIZATION: &str = "http://octofhir.com/ccda-fhir/StructureMap/cda-organization-to-fhir";
 
 /// Something that stops a conversion: input that is not a document, a map that fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -204,19 +208,12 @@ impl Converter {
         &self,
         url: &str,
         source: &Value,
-        options: &Options,
+        ids: &dyn IdGenerator,
     ) -> Result<fml_engine::Transformed, Error> {
         let map = self
             .by_url
             .get(url)
             .ok_or_else(|| Error::new(format!("no map {url}")))?;
-        let sequential = SequentialIds::default();
-        let random = RandomIds;
-        let ids: &dyn fml_engine::IdGenerator = if options.deterministic_ids {
-            &sequential
-        } else {
-            &random
-        };
         Engine::new(&self.definitions, &self.expressions)
             .with_maps(&self.maps)
             .with_concept_maps(&self.concept_maps)
@@ -239,16 +236,28 @@ impl Converter {
         let mut json = document.json;
         prepare::resolve_narrative_references(&mut json);
         report.coverage = report::coverage(&json, &self.supported);
-        let transformed = self.run(TO_FHIR, &json, options).await?;
+        // One id sequence for the conversion: the organizations found after the map runs get
+        // ids of their own.
+        let sequential = SequentialIds::default();
+        let random = RandomIds;
+        let ids: &dyn IdGenerator = if options.deterministic_ids {
+            &sequential
+        } else {
+            &random
+        };
+        let transformed = self.run(TO_FHIR, &json, ids).await?;
         for warning in &transformed.warnings {
             report
                 .losses
                 .push(Loss::new(Stage::Map, "", warning.clone()));
         }
         let mut bundle = transformed.target;
-        report
-            .losses
-            .extend(prepare::take_conversion_losses(&mut bundle));
+        let organizations = self.same_id_organizations(&json, &bundle, ids).await?;
+        report.losses.extend(prepare::take_conversion_losses(
+            &mut bundle,
+            &organizations,
+            ids,
+        ));
         // Shared participants first, so the merged encounters' participants compare equal.
         prepare::deduplicate(&mut bundle);
         prepare::merge_by_identifier(&mut bundle);
@@ -262,6 +271,36 @@ impl Converter {
         Ok(ToFhir { bundle, report })
     }
 
+    /// For each author id the maps left out a Provenance for (a person with no organization),
+    /// the Organization the participants of `document` with that id represent, when they
+    /// represent exactly one: each found representedOrganization converted by the organization
+    /// map, the same Organization however many times it is written.
+    async fn same_id_organizations(
+        &self,
+        document: &Value,
+        bundle: &Value,
+        ids: &dyn IdGenerator,
+    ) -> Result<HashMap<String, Value>, Error> {
+        let keys = prepare::left_out_author_ids(bundle);
+        let mut found = HashMap::new();
+        if keys.is_empty() {
+            return Ok(found);
+        }
+        for (key, cda_organizations) in prepare::participant_organizations(document, &keys) {
+            let mut organizations: Vec<Value> = Vec::new();
+            for cda_organization in &cda_organizations {
+                let organization = self.run(ORGANIZATION, cda_organization, ids).await?.target;
+                if !organizations.contains(&organization) {
+                    organizations.push(organization);
+                }
+            }
+            if let [organization] = organizations.as_slice() {
+                found.insert(key, organization.clone());
+            }
+        }
+        Ok(found)
+    }
+
     /// A FHIR document Bundle (or a Composition alone) as a CDA document.
     pub async fn to_cda(&self, input: &Value, options: &Options) -> Result<ToCda, Error> {
         let mut bundle = prepare::as_document_bundle(input)?;
@@ -270,7 +309,14 @@ impl Converter {
         for loss in prepare::narratives_to_cda(&mut bundle) {
             report.losses.push(loss);
         }
-        let transformed = self.run(TO_CDA, &bundle, options).await?;
+        let sequential = SequentialIds::default();
+        let random = RandomIds;
+        let ids: &dyn IdGenerator = if options.deterministic_ids {
+            &sequential
+        } else {
+            &random
+        };
+        let transformed = self.run(TO_CDA, &bundle, ids).await?;
         for warning in &transformed.warnings {
             report
                 .losses

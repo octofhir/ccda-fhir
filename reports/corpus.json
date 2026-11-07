@@ -12,15 +12,15 @@
   },
   "roundTrip": {
     "facts": 63717,
-    "kept": 46951
+    "kept": 46953
   },
   "fhirRoundTrip": {
-    "facts": 53107,
-    "kept": 52383
+    "facts": 53144,
+    "kept": 52402
   },
-  "losses": 1053,
+  "losses": 1024,
   "lossesByStage": {
-    "map": 846,
+    "map": 817,
     "narrative": 21,
     "read": 186
   },
@@ -39,12 +39,12 @@
     "Medication": 435,
     "MedicationRequest": 537,
     "Observation": 2349,
-    "Organization": 1241,
+    "Organization": 1243,
     "Patient": 493,
     "Practitioner": 1599,
     "PractitionerRole": 774,
     "Procedure": 261,
-    "Provenance": 476,
+    "Provenance": 505,
     "ServiceRequest": 373
   },
   "unknownTemplates": {
@@ -1093,7 +1093,7 @@
       "fragment": false,
       "error": null,
       "facts": 442,
-      "kept": 324,
+      "kept": 326,
       "missing": [
         "city Ann Arbor",
         "code 2.16.840.1.113883.5.7|A",
@@ -1112,7 +1112,6 @@
         "family Penny",
         "given Nightingale",
         "given Puffer",
-        "id 2.16.840.1.113883.19.5.9999.1393|",
         "id 2.16.840.1.113883.4.6|333444444",
         "id 2.16.840.1.113883.4.6|555555555",
         "id 2413773C-2372-4299-BBE6-5B0F60664446|",
@@ -1165,7 +1164,7 @@
         "time 2013-07-31",
         "time 2013-08-01T05:00-08:00"
       ],
-      "losses": 33,
+      "losses": 18,
       "coverage": {
         "sections": [
           {
@@ -2372,7 +2371,7 @@
         "time 2013-07-30",
         "time 2013-07-31"
       ],
-      "losses": 21,
+      "losses": 7,
       "coverage": {
         "sections": [
           {

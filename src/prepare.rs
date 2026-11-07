@@ -1,9 +1,10 @@
 //! What happens around the maps: narrative references and markup, document Bundles, references.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use fml_engine::IdGenerator;
 use serde_json::{Map, Value, json};
 
 use crate::Error;
@@ -191,42 +192,188 @@ fn note_text(text: &Value) -> String {
 }
 
 /// The extension a map marks a Bundle entry with to say what it could not carry over (group
-/// `LeftOut` of the participants map): its value is the message, the entry's `target` the
-/// resource it is about.
+/// `LeftOut` and `AuthorProvenance` of the participants map): its value is the message, the
+/// entry's `target` the resource it is about.
 const CONVERSION_LOSS: &str = "http://octofhir.com/ccda-fhir/StructureDefinition/conversion-loss";
 
-/// Takes the entries the maps marked with [`CONVERSION_LOSS`] out of the Bundle and reports
-/// each one, naming the resource it is about.
-pub(crate) fn take_conversion_losses(bundle: &mut Value) -> Vec<Loss> {
+/// Beside [`CONVERSION_LOSS`] on a Provenance of an author with no organization: one of the
+/// author's ids (`root^extension`, or the root alone).
+const CONVERSION_LOSS_AUTHOR_ID: &str =
+    "http://octofhir.com/ccda-fhir/StructureDefinition/conversion-loss-author-id";
+
+/// The author ids of the Provenances the maps marked as having no organization.
+pub(crate) fn left_out_author_ids(bundle: &Value) -> HashSet<String> {
+    bundle["entry"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .flat_map(|e| author_ids(&e["resource"]))
+        .collect()
+}
+
+fn author_ids(resource: &Value) -> Vec<String> {
+    resource["extension"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|e| e["url"] == CONVERSION_LOSS_AUTHOR_ID)
+        .filter_map(|e| e["valueString"].as_str().map(str::to_owned))
+        .collect()
+}
+
+/// The representedOrganizations of the participants of a CDA document (assigned authors and
+/// entities, devices aside) with one of `keys` as an id, exactly: the same root and extension.
+/// A root alone that is an OID names an assigning authority, not someone, and is no key (as in
+/// [`merge_by_identifier`]). Each organization once, as written.
+pub(crate) fn participant_organizations(
+    document: &Value,
+    keys: &HashSet<String>,
+) -> HashMap<String, Vec<Value>> {
+    fn walk(value: &Value, keys: &HashSet<String>, out: &mut HashMap<String, Vec<Value>>) {
+        match value {
+            Value::Object(object) => {
+                if let Some(organization) = object.get("representedOrganization")
+                    && object.get("assignedAuthoringDevice").is_none()
+                {
+                    let ids = match object.get("id") {
+                        Some(Value::Array(ids)) => ids.iter().collect(),
+                        Some(id) => vec![id],
+                        None => Vec::new(),
+                    };
+                    for id in ids {
+                        let Some(key) = participant_key(id) else {
+                            continue;
+                        };
+                        if keys.contains(&key) {
+                            let found = out.entry(key).or_default();
+                            if !found.contains(organization) {
+                                found.push(organization.clone());
+                            }
+                        }
+                    }
+                }
+                for child in object.values() {
+                    walk(child, keys, out);
+                }
+            }
+            Value::Array(items) => items.iter().for_each(|i| walk(i, keys, out)),
+            _ => {}
+        }
+    }
+    let mut out = HashMap::new();
+    walk(document, keys, &mut out);
+    out
+}
+
+/// An id as the maps write it (`root^extension`, or the root alone), when it names someone.
+fn participant_key(id: &Value) -> Option<String> {
+    let root = id["root"].as_str()?;
+    match id["extension"].as_str() {
+        Some(extension) => Some(format!("{root}^{extension}")),
+        None => {
+            let oid = root
+                .split('.')
+                .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()));
+            (!oid).then(|| root.to_owned())
+        }
+    }
+}
+
+/// Settles the entries the maps marked with [`CONVERSION_LOSS`]. A Provenance of an author with
+/// no organization acts on behalf of the Organization a participant with one of the author's
+/// ids represents (`organizations`, by id): when the ids lead to exactly one, it gets that
+/// `onBehalfOf` (a new entry; identical Organizations are merged after) and loses the marks.
+/// Every other marked entry is taken out and reported, naming the resource it is about, and a
+/// Practitioner only it referred to goes with it.
+pub(crate) fn take_conversion_losses(
+    bundle: &mut Value,
+    organizations: &HashMap<String, Value>,
+    ids: &dyn IdGenerator,
+) -> Vec<Loss> {
     let Some(entries) = bundle["entry"].as_array_mut() else {
         return Vec::new();
     };
+    let kinds: HashMap<String, String> = entries
+        .iter()
+        .filter_map(|e| {
+            Some((
+                e["fullUrl"].as_str()?.to_owned(),
+                e["resource"]["resourceType"].as_str()?.to_owned(),
+            ))
+        })
+        .collect();
     let mut messages = Vec::new();
-    entries.retain(|entry| {
-        let Some(message) = entry["resource"]["extension"]
+    let mut dropped_agents = Vec::new();
+    let mut added = Vec::new();
+    entries.retain_mut(|entry| {
+        let resource = &mut entry["resource"];
+        let Some(message) = resource["extension"]
             .as_array()
             .into_iter()
             .flatten()
             .find(|e| e["url"] == CONVERSION_LOSS)
             .and_then(|e| e["valueString"].as_str())
+            .map(str::to_owned)
         else {
             return true;
         };
-        let target = entry["resource"]["target"][0]["reference"]
+        let who = resource["agent"][0]["who"]["reference"]
+            .as_str()
+            .map(str::to_owned);
+        let mut found: Vec<&Value> = Vec::new();
+        for key in author_ids(resource) {
+            if let Some(organization) = organizations.get(&key)
+                && !found.contains(&organization)
+            {
+                found.push(organization);
+            }
+        }
+        if let (Some(_), [organization]) = (&who, found.as_slice()) {
+            let id = ids.uuid();
+            let full_url = format!("urn:uuid:{id}");
+            // The id after the resource type, where the maps write it: identical resources then
+            // serialise alike once their ids are taken out (deduplicate).
+            let mut resource_with_id = Map::new();
+            for (key, value) in organization.as_object().into_iter().flatten() {
+                resource_with_id.insert(key.clone(), value.clone());
+                if key == "resourceType" {
+                    resource_with_id.insert("id".to_owned(), json!(id));
+                }
+            }
+            added.push(json!({ "fullUrl": full_url, "resource": resource_with_id }));
+            resource["agent"][0]["onBehalfOf"] = json!({ "reference": full_url });
+            if let Some(object) = resource.as_object_mut()
+                && let Some(Value::Array(extensions)) = object.get_mut("extension")
+            {
+                extensions.retain(|e| {
+                    e["url"] != CONVERSION_LOSS && e["url"] != CONVERSION_LOSS_AUTHOR_ID
+                });
+                if extensions.is_empty() {
+                    object.remove("extension");
+                }
+            }
+            return true;
+        }
+        let target = resource["target"][0]["reference"]
             .as_str()
             .unwrap_or_default();
-        messages.push((target.to_owned(), message.to_owned()));
+        messages.push((target.to_owned(), message));
+        dropped_agents.extend(who);
         false
     });
-    let kinds: HashMap<&str, &str> = entries
-        .iter()
-        .filter_map(|e| {
-            Some((
-                e["fullUrl"].as_str()?,
-                e["resource"]["resourceType"].as_str()?,
-            ))
+    entries.extend(added);
+    // A Practitioner made only for a Provenance that is not kept.
+    let mut referenced = HashSet::new();
+    for entry in entries.iter() {
+        collect_references(&entry["resource"], &mut referenced);
+    }
+    entries.retain(|entry| {
+        !entry["fullUrl"].as_str().is_some_and(|full| {
+            dropped_agents.iter().any(|a| a == full)
+                && !referenced.contains(full)
+                && entry["resource"]["resourceType"] == "Practitioner"
         })
-        .collect();
+    });
     messages
         .into_iter()
         .map(|(target, message)| {
@@ -237,6 +384,24 @@ pub(crate) fn take_conversion_losses(bundle: &mut Value) -> Vec<Loss> {
             Loss::new(Stage::Map, "", format!("{about}: {message}"))
         })
         .collect()
+}
+
+/// Every `reference` inside a value.
+fn collect_references(value: &Value, out: &mut HashSet<String>) {
+    match value {
+        Value::Object(object) => {
+            for (key, child) in object {
+                match child {
+                    Value::String(reference) if key == "reference" => {
+                        out.insert(reference.clone());
+                    }
+                    _ => collect_references(child, out),
+                }
+            }
+        }
+        Value::Array(items) => items.iter().for_each(|i| collect_references(i, out)),
+        _ => {}
+    }
 }
 
 /// Converts the CDA narrative the maps copy into `Narrative.div` to XHTML.
